@@ -1696,24 +1696,28 @@ button:not(.miwy-tb-btn):not(.settings-button):not(.new-file-button):not(.miwy-c
     height: 34px;
     min-width: 34px;
     border-radius: 50%;
-    background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+    background: conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
     border: 2px solid #ffffff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 8px rgba(255,255,255,0.5);
-    transition: all 0.2s;
+    box-shadow: 0 0 10px rgba(255, 106, 0, 0.4), inset 0 0 0 3px #121212;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
 }
 .miwy-chromatic-circle:hover {
     transform: translateY(-2px) scale(1.12);
-    box-shadow: 0 0 14px rgba(255,255,255,0.8);
+    box-shadow: 0 0 16px rgba(255,255,255,0.8), inset 0 0 0 2px #121212;
 }
 .miwy-chromatic-circle input[type="color"] {
     opacity: 0;
     width: 100%;
     height: 100%;
     cursor: pointer;
+    position: absolute;
+    inset: 0;
 }
 .miwy-dock-drag-handle {
     cursor: move;
@@ -4460,15 +4464,15 @@ function replaceAllMatches() {
                 <span>Recursos</span>
             </div>
             <div style="display:flex; gap:6px;">
-                <button onclick="document.getElementById('newFileButton').click()" style="background:#1b242e; color:#38bdf8; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nuevo Archivo">+ 📄 Archivo</button>
-                <button onclick="createNewFolderPrompt()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nueva Carpeta">+ 📁 Carpeta</button>
-                <button onclick="triggerAssetUpload()" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">+ 🖼️ Subir Archivo</button>
+                <button onclick="document.getElementById('newFileButton').click()" style="background:#1b242e; color:#38bdf8; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nuevo Archivo">+ Archivo</button>
+                <button onclick="createNewFolderPrompt()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nueva Carpeta">+ Carpeta</button>
+                <button onclick="triggerAssetUpload()" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">+ Subir Archivo</button>
                 <input type="file" id="folderAssetInput" accept="*/*" multiple style="display:none;" onchange="handleAssetUpload(event)">
             </div>
         </div>
 
         <div id="folderBreadcrumb" style="font-size:11px; color:#91a0ad; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-            <span style="color:var(--orange); cursor:pointer;" onclick="renderFolderManager('/')">📁 Inicio</span>
+            <span style="color:var(--orange); cursor:pointer; font-weight:bold;" onclick="renderFolderManager('/')">Inicio</span>
         </div>
 
         <div id="folderGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap:10px; align-content:start; padding:4px; border:2px dashed transparent; border-radius:8px; transition:all 0.2s;">
@@ -4479,12 +4483,27 @@ function replaceAllMatches() {
             ⚡ Arrastra y suelta archivos aquí para organizarlos automáticamente por tipo en tu proyecto.
         </div>
 
+        <!-- IMAGE VIEWER FLOATING MODAL DIALOG -->
+        <div id="imageViewerModal" class="overlay">
+            <div class="dialog" style="width: 600px; max-width: calc(100vw - 24px); max-height: 85vh; display: flex; flex-direction: column; padding: 14px; background: #0f172a; border: 1px solid #334155; border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #1e293b; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; color: #fff;">
+                        <span id="imageModalFileName">Ver Imagen</span>
+                    </div>
+                    <button onclick="closeImageViewerModal()" style="background: transparent; color: #94a3b8; border: none; font-size: 20px; cursor: pointer; padding: 0 4px;" title="Cerrar">×</button>
+                </div>
+                <div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #020617; border-radius: 8px; padding: 12px; overflow: hidden; border: 1px solid #1e293b;">
+                    <img id="imageModalPreview" src="" alt="Vista previa de imagen" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
+            </div>
+        </div>
+
         <!-- CODE EDITOR FLOATING MODAL DIALOG (OPENS ONLY ON 'EDITAR') -->
         <div id="codeEditorModal" class="overlay">
             <div class="dialog" style="width: 780px; max-width: calc(100vw - 24px); height: 520px; display: flex; flex-direction: column; padding: 12px; background: #0d1117; border: 1px solid #263442; border-radius: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #212e3b; margin-bottom: 8px;">
                     <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; color: #fff;">
-                        <span id="modalFileIcon">📄</span>
+                        <span id="modalFileIcon">FILE</span>
                         <span id="modalFileName">Editar Archivo</span>
                     </div>
                     <button onclick="closeCodeEditorModal()" style="background: transparent; color: #888; border: none; font-size: 18px; cursor: pointer; padding: 0 4px;" title="Cerrar Editor">×</button>
@@ -4924,209 +4943,100 @@ function replaceAllMatches() {
 
             <div class="settings-options">
 
-                <button
-                    id="exportProjectSettingsBtn"
-                    class="settings-option"
-                    style="color: #42d66b;">
-
+                <button id="exportProjectSettingsBtn" class="settings-option">
                     <div class="settings-option-left">
-
-                        <div class="option-icon icon-option-export" style="background: #1a251c;">
-                            📦
+                        <div class="option-icon" style="background: #1a251c; color:#42d66b; border-color:#2a3d2e;">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.5.5 0 01.5.5v2.5a1 1 0 001 1h12a1 1 0 001-1v-2.5a.5.5 0 011 0v2.5a2 2 0 01-2 2H2a2 2 0 01-2-2v-2.5a.5.5 0 01.5-.5z"/><path d="M7.646 11.854a.5.5 0 00.708 0l3-3a.5.5 0 00-.708-.708L8.5 10.293V1.5a.5.5 0 00-1 0v8.793L5.354 8.146a.5.5 0 10-.708.708l3 3z"/></svg>
                         </div>
-
-                        <div>
-
-                            <strong>
-                                Exportar proyecto
-                            </strong>
-
-                            <small>
-                                Descargar en formato ZIP
-                            </small>
-
+                        <div class="settings-option-text">
+                            <strong>Exportar proyecto</strong>
+                            <small>Descargar en formato ZIP</small>
                         </div>
-
                     </div>
-
-                    ›
-
+                    <span class="option-arrow">›</span>
                 </button>
 
-                <button
-                    id="importProjectSettingsBtn"
-                    class="settings-option"
-                    style="color: var(--orange);">
-
+                <button id="importProjectSettingsBtn" class="settings-option">
                     <div class="settings-option-left">
-
-                        <div class="option-icon icon-option-import" style="background: #21180d;">
-                            ⤴
+                        <div class="option-icon" style="background: #21180d; color:var(--orange); border-color:#3d2c18;">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.5.5 0 01.5.5v2.5a1 1 0 001 1h12a1 1 0 001-1v-2.5a.5.5 0 011 0v2.5a2 2 0 01-2 2H2a2 2 0 01-2-2v-2.5a.5.5 0 01.5-.5z"/><path d="M7.646 1.146a.5.5 0 01.708 0l3 3a.5.5 0 01-.708.708L8.5 2.707V11.5a.5.5 0 01-1 0V2.707L5.354 4.854a.5.5 0 11-.708-.708l3-3z"/></svg>
                         </div>
-
-                        <div>
-
-                            <strong>
-                                Importar proyecto
-                            </strong>
-
-                            <small>
-                                Cargar desde ZIP o archivos web
-                            </small>
-
+                        <div class="settings-option-text">
+                            <strong>Importar proyecto</strong>
+                            <small>Cargar desde ZIP o archivos web</small>
                         </div>
-
                     </div>
-
-                    ›
-
+                    <span class="option-arrow">›</span>
                 </button>
 
-
-                <button
-                    id="visualEditorSettingsBtn"
-                    class="settings-option">
-
+                <button id="visualEditorSettingsBtn" class="settings-option">
                     <div class="settings-option-left">
-
-                        <div class="option-icon icon-option-edit">
-                            ✏️
+                        <div class="option-icon">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M12.854.146a.5.5 0 00-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 000-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H2.5v.793l6.5 6.5h.793l6.5-6.5zm-9.793 3.5l6-6L13.5 7.5l-6 6H3.707v-3.707z"/></svg>
                         </div>
-
-                        <div>
-                            <strong>
-                                Editor Visual
-                            </strong>
-                            <small>
-                                Orientación de controles flotantes
-                            </small>
+                        <div class="settings-option-text">
+                            <strong>Editor Visual</strong>
+                            <small>Orientación de controles flotantes</small>
                         </div>
-
                     </div>
-
-                    ›
-
+                    <span class="option-arrow">›</span>
                 </button>
 
-                <button
-                    id="versionsButton"
-                    class="settings-option">
-
+                <button id="versionsButton" class="settings-option">
                     <div class="settings-option-left">
-
-                        <div class="option-icon icon-option-version">
-                            ↶
+                        <div class="option-icon">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3a5 5 0 104.546 2.914.5.5 0 01.908-.417A6 6 0 118 2v1z"/><path d="M8 4.466V.5a.5.5 0 01.796-.407l3.5 2.5a.5.5 0 010 .814l-3.5 2.5A.5.5 0 018 5.5v-1.034z"/></svg>
                         </div>
-
-                        <div>
-
-                            <strong>
-                                Versiones
-                            </strong>
-
-                            <small>
-                                Historial del proyecto
-                            </small>
-
+                        <div class="settings-option-text">
+                            <strong>Versiones</strong>
+                            <small>Historial del proyecto</small>
                         </div>
-
                     </div>
-
-                    ›
-
+                    <span class="option-arrow">›</span>
                 </button>
 
-
-                <button
-                    id="saveProjectSettingsBtn"
-                    class="settings-option">
-
+                <button id="saveProjectSettingsBtn" class="settings-option">
                     <div class="settings-option-left">
-
-                        <div class="option-icon icon-option-save">
-                            <span class="miwy-icon icon-save" aria-hidden="true"></span>
+                        <div class="option-icon">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V4.414a1 1 0 00-.293-.707l-2.414-2.414A1 1 0 0011.586 1H2zm9.586 1L14 4.414V14H2V2h9.586z"/><path d="M4 2h6v4H4V2zm1 1v2h4V3H5zm-1 7h8v3H4v-3z"/></svg>
                         </div>
-
-                        <div>
-
-                            <strong>
-                                Guardar
-                            </strong>
-
-                            <small>
-                                Guardar proyecto en el dispositivo
-                            </small>
-
+                        <div class="settings-option-text">
+                            <strong>Guardar</strong>
+                            <small>Guardar proyecto en el dispositivo</small>
                         </div>
-
                     </div>
-
-                    ›
-
+                    <span class="option-arrow">›</span>
                 </button>
 
-                <button
-                    id="themeButton"
-                    class="settings-option">
-
+                <button id="themeButton" class="settings-option">
                     <div class="settings-option-left">
-
-                        <div class="option-icon icon-option-theme">
-                            🎨
+                        <div class="option-icon">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 15V1a7 7 0 110 14z"/></svg>
                         </div>
-
-                        <div>
-
-                            <strong>
-                                Temas
-                            </strong>
-
-                            <small>
-                                Seleccionar tema de interfaz
-                            </small>
-
+                        <div class="settings-option-text">
+                            <strong>Temas</strong>
+                            <small>Seleccionar tema de interfaz</small>
                         </div>
-
                     </div>
-
-                    ›
-
+                    <span class="option-arrow">›</span>
                 </button>
 
-                <button
-                    id="shortcutsButton"
-                    class="settings-option">
-
+                <button id="shortcutsButton" class="settings-option">
                     <div class="settings-option-left">
-
-                        <div class="option-icon icon-option-keyboard">
-                            ⌨️
+                        <div class="option-icon">
+                            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M14 3a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1h12zM2 2a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H2z"/><path d="M3 5h2v2H3V5zm3 0h2v2H6V5zm3 0h2v2H9V5zm3 0h2v2h-2V5zM3 8h2v2H3V8zm3 0h2v2H6V8zm3 0h2v2H9V8zm3 0h2v2h-2V8zM5 11h6v1H5v-1z"/></svg>
                         </div>
-
-                        <div>
-
-                            <strong>
-                                Atajos de teclado
-                            </strong>
-
-                            <small>
-                                Lista de combinaciones de teclas
-                            </small>
-
+                        <div class="settings-option-text">
+                            <strong>Atajos de teclado</strong>
+                            <small>Lista de combinaciones de teclas</small>
                         </div>
-
                     </div>
-
-                    ›
-
+                    <span class="option-arrow">›</span>
                 </button>
 
-                <div style="padding: 10px 4px 4px;">
-                    <button
-                        id="exitToGalleryBtn"
-                        class="connect-repo"
-                        style="background: #251010; color: var(--danger); border: 1px solid #ff4d4d33; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        🚪 Salir a la Galería
+                <div style="padding: 10px 0 4px;">
+                    <button id="exitToGalleryBtn" class="connect-repo" style="background: #251010; color: var(--danger); border: 1px solid #ff4d4d33; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        Salir a la Galería
                     </button>
                 </div>
 
@@ -5784,11 +5694,11 @@ function renderFolderManager(dirPath = "/"){
         };
 
         item.innerHTML = `
-            <div style="font-size:28px;">📁</div>
+            <div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#22303e; border-radius:8px; border:1px solid #36495b; color:var(--orange); font-weight:800; font-size:12px;">DIR</div>
             <div style="font-size:11px; color:#edf2f7; font-weight:600; text-align:center; word-break:break-all;">${escapeHTML(folderName)}</div>
             <div style="position:absolute; top:4px; right:4px; display:flex; gap:2px;">
                 <button title="Renombrar carpeta" onclick="event.stopPropagation(); renameFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:#8a99ad; border:none; font-size:10px; cursor:pointer; padding:2px;">✎</button>
-                <button title="Eliminar carpeta" onclick="event.stopPropagation(); deleteFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:var(--danger); border:none; font-size:10px; cursor:pointer; padding:2px;">🗑</button>
+                <button title="Eliminar carpeta" onclick="event.stopPropagation(); deleteFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:var(--danger); border:none; font-size:10px; cursor:pointer; padding:2px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg></button>
             </div>
         `;
         grid.appendChild(item);
@@ -5834,8 +5744,8 @@ function renderFolderManager(dirPath = "/"){
             };
 
             const previewIcon = isImage
-                ? `<img src="${content}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #334155;">`
-                : `<div style="font-size:24px;">${typeof getFileIcon === "function" ? getFileIcon(filename) : "📄"}</div>`;
+                ? `<div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#1e293b; border-radius:4px; border:1px solid #334155; font-weight:800; font-size:10px; color:#38bdf8;">IMG</div>`
+                : `<div style="height:36px; display:flex; align-items:center; justify-content:center;">${typeof getFileIcon === "function" ? getFileIcon(filename) : '<span style="color:#94a3b8; font-weight:800; font-size:12px;">FILE</span>'}</div>`;
 
             const isCodeFile = !isImage;
 
@@ -5845,7 +5755,7 @@ function renderFolderManager(dirPath = "/"){
                 <div style="display:flex; gap:4px; margin-top:4px; width:100%; justify-content:center;">
                     <button onclick="event.stopPropagation(); selectFile('${filename}')" style="background:#1e293b; color:#38bdf8; border:1px solid #334155; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:600;" title="Abrir y vista previa">Abrir</button>
                     ${isCodeFile ? `<button onclick="event.stopPropagation(); openCodeEditorModal('${filename}')" style="background:#2b180d; color:var(--orange); border:1px solid #ff6a0040; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:700;" title="Editar código">Editar</button>` : ''}
-                    <button onclick="event.stopPropagation(); deleteFile('${filename}')" style="background:#251010; color:var(--danger); border:1px solid #ff4d4d33; border-radius:4px; padding:2px 5px; font-size:9px; cursor:pointer;" title="Eliminar archivo">🗑</button>
+                    <button onclick="event.stopPropagation(); deleteFile('${filename}')" style="background:#251010; color:var(--danger); border:1px solid #ff4d4d33; border-radius:4px; padding:2px 5px; font-size:9px; cursor:pointer;" title="Eliminar archivo"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg></button>
                 </div>
             `;
             grid.appendChild(item);
@@ -6159,30 +6069,30 @@ function getFileType(filename){
 function getFileIcon(filename){
     const type = getFileType(filename);
 
-    if (type === "html") return `<span style="color:#e34f26; font-weight:bold;">🌐 HTML</span>`;
-    if (type === "css") return `<span style="color:#1572b6; font-weight:bold;">🎨 CSS</span>`;
-    if (type === "js") return `<span style="color:#f7df1e; font-weight:bold;">⚡ JS</span>`;
-    if (type === "ts") return `<span style="color:#3178c6; font-weight:bold;">🟦 TS</span>`;
-    if (type === "jsx" || type === "tsx") return `<span style="color:#61dafb; font-weight:bold;">⚛️ React</span>`;
-    if (type === "json") return `<span style="color:#f29d27; font-weight:bold;">🧩 JSON</span>`;
-    if (type === "python") return `<span style="color:#3776ab; font-weight:bold;">🐍 Py</span>`;
-    if (type === "java") return `<span style="color:#5382a1; font-weight:bold;">☕ Java</span>`;
-    if (type === "cpp") return `<span style="color:#00599c; font-weight:bold;">⚙️ C++</span>`;
-    if (type === "csharp") return `<span style="color:#68217a; font-weight:bold;">💜 C#</span>`;
-    if (type === "php") return `<span style="color:#777bb4; font-weight:bold;">🐘 PHP</span>`;
-    if (type === "go") return `<span style="color:#00add8; font-weight:bold;">🐹 Go</span>`;
-    if (type === "rust") return `<span style="color:#dea584; font-weight:bold;">🦀 Rust</span>`;
-    if (type === "ruby") return `<span style="color:#cc342d; font-weight:bold;">💎 Ruby</span>`;
-    if (type === "sql") return `<span style="color:#e38c00; font-weight:bold;">🗄️ SQL</span>`;
-    if (type === "markdown") return `<span style="color:#083344; font-weight:bold;">📝 MD</span>`;
-    if (type === "xml") return `<span style="color:#ff6600; font-weight:bold;">🏷️ XML</span>`;
-    if (type === "svg") return `<span style="color:#ffb300; font-weight:bold;">◇ SVG</span>`;
-    if (type === "image") return `🖼️`;
-    if (type === "audio") return `🎵`;
-    if (type === "video") return `🎬`;
-    if (type === "archive") return `📦`;
+    if (type === "html") return `<span style="color:#e34f26; font-weight:800; font-size:12px; letter-spacing:0.5px;">HTML</span>`;
+    if (type === "css") return `<span style="color:#1572b6; font-weight:800; font-size:12px; letter-spacing:0.5px;">CSS</span>`;
+    if (type === "js") return `<span style="color:#f7df1e; font-weight:800; font-size:12px; letter-spacing:0.5px;">JS</span>`;
+    if (type === "ts") return `<span style="color:#3178c6; font-weight:800; font-size:12px; letter-spacing:0.5px;">TS</span>`;
+    if (type === "jsx" || type === "tsx") return `<span style="color:#61dafb; font-weight:800; font-size:12px; letter-spacing:0.5px;">REACT</span>`;
+    if (type === "json") return `<span style="color:#f29d27; font-weight:800; font-size:12px; letter-spacing:0.5px;">JSON</span>`;
+    if (type === "python") return `<span style="color:#3776ab; font-weight:800; font-size:12px; letter-spacing:0.5px;">PY</span>`;
+    if (type === "java") return `<span style="color:#5382a1; font-weight:800; font-size:12px; letter-spacing:0.5px;">JAVA</span>`;
+    if (type === "cpp") return `<span style="color:#00599c; font-weight:800; font-size:12px; letter-spacing:0.5px;">C++</span>`;
+    if (type === "csharp") return `<span style="color:#68217a; font-weight:800; font-size:12px; letter-spacing:0.5px;">C#</span>`;
+    if (type === "php") return `<span style="color:#777bb4; font-weight:800; font-size:12px; letter-spacing:0.5px;">PHP</span>`;
+    if (type === "go") return `<span style="color:#00add8; font-weight:800; font-size:12px; letter-spacing:0.5px;">GO</span>`;
+    if (type === "rust") return `<span style="color:#dea584; font-weight:800; font-size:12px; letter-spacing:0.5px;">RUST</span>`;
+    if (type === "ruby") return `<span style="color:#cc342d; font-weight:800; font-size:12px; letter-spacing:0.5px;">RUBY</span>`;
+    if (type === "sql") return `<span style="color:#e38c00; font-weight:800; font-size:12px; letter-spacing:0.5px;">SQL</span>`;
+    if (type === "markdown") return `<span style="color:#38bdf8; font-weight:800; font-size:12px; letter-spacing:0.5px;">MD</span>`;
+    if (type === "xml") return `<span style="color:#ff6600; font-weight:800; font-size:12px; letter-spacing:0.5px;">XML</span>`;
+    if (type === "svg") return `<span style="color:#ffb300; font-weight:800; font-size:12px; letter-spacing:0.5px;">SVG</span>`;
+    if (type === "image") return `<span style="color:#38bdf8; font-weight:800; font-size:12px; letter-spacing:0.5px;">IMG</span>`;
+    if (type === "audio") return `<span style="color:#a855f7; font-weight:800; font-size:12px; letter-spacing:0.5px;">AUDIO</span>`;
+    if (type === "video") return `<span style="color:#ec4899; font-weight:800; font-size:12px; letter-spacing:0.5px;">VIDEO</span>`;
+    if (type === "archive") return `<span style="color:#f59e0b; font-weight:800; font-size:12px; letter-spacing:0.5px;">ZIP</span>`;
 
-    return `📄`;
+    return `<span style="color:#94a3b8; font-weight:800; font-size:12px; letter-spacing:0.5px;">FILE</span>`;
 }
 
 
@@ -6428,10 +6338,40 @@ function closeCodeEditorModal() {
     updatePreview();
 }
 
+function openImageViewerModal(filename) {
+    const project = getCurrentProject();
+    if (!project || !project.files || !project.files[filename]) return;
+
+    const modal = document.getElementById("imageViewerModal");
+    const imgPreview = document.getElementById("imageModalPreview");
+    const nameEl = document.getElementById("imageModalFileName");
+
+    if (nameEl) nameEl.textContent = filename;
+    if (imgPreview) imgPreview.src = project.files[filename];
+
+    if (modal) modal.classList.add("open");
+}
+
+function closeImageViewerModal() {
+    const modal = document.getElementById("imageViewerModal");
+    if (modal) modal.classList.remove("open");
+}
+
 function selectFile(filename){
     if (!filename) return;
     saveCurrentFile();
     currentFileName = filename;
+
+    const project = getCurrentProject();
+    if (project && project.files && project.files[filename]) {
+        const fileContent = project.files[filename];
+        const isImage = typeof fileContent === "string" && (fileContent.startsWith("data:image") || getFileType(filename) === "image");
+        if (isImage) {
+            openImageViewerModal(filename);
+            return;
+        }
+    }
+
     updatePreview();
 }
 
@@ -6663,7 +6603,7 @@ function renderProjects(){
 
             const icon = document.createElement("div");
             icon.className = "miwy-project-icon";
-            icon.textContent = "⚡";
+            icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M4.707 3.293a1 1 0 010 1.414L1.414 8l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0zm6.586 0a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 8l-3.293-3.293a1 1 0 010-1.414z"/></svg>`;
 
             const info = document.createElement("div");
             info.className = "miwy-project-info";
@@ -6692,7 +6632,8 @@ function renderProjects(){
 
             const delBtn = document.createElement("button");
             delBtn.className = "miwy-delete-btn";
-            delBtn.textContent = "🗑";
+            delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg>`;
+            delBtn.title = "Eliminar proyecto";
             delBtn.onclick = (e) => {
                 e.stopPropagation();
                 deleteProject(project.id);
@@ -7592,7 +7533,16 @@ function showSettingsMain(){
     }
 }
 
+function resetVisualEditorState() {
+    isVisualEditing = false;
+    const btn = document.getElementById("visualEditBtn");
+    if (btn) btn.classList.remove("active");
+    const parentDock = document.getElementById("parentVisualDock");
+    if (parentDock) parentDock.style.display = "none";
+}
+
 function exitToGallery() {
+    resetVisualEditorState();
     const settingsOverlay = document.getElementById("settingsOverlay");
     const workspace = document.getElementById("workspace");
     const galleryContainer = document.getElementById("galleryContainer");
@@ -8379,14 +8329,11 @@ function reloadRealPhoneFrame() {
         <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="font-minus" title="Reducir fuente" style="font-weight:bold; font-size:11px;">A-</button><span class="miwy-tb-label">Reducir</span></div>
         <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="bold" title="Negrita" style="font-weight:bold; font-size:12px;">B</button><span class="miwy-tb-label">Negrita</span></div>
         <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="align" title="Alinear texto"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1H2V3zm0 4h8v1H2V7zm0 4h12v1H2v-1z"/></svg></button><span class="miwy-tb-label">Alinear</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="radius" title="Redondear bordes"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h4v1H4v3H3V3zm10 0h-4v1h3v3h1V3zM3 13h4v-1H4v-3H3v4zm10 0h-4v-1h3v-3h1v4z"/></svg></button><span class="miwy-tb-label">Borde</span></div>
     </div>
     <div class="miwy-dock-group">
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-title" title="Agregar Título" style="font-weight:bold; font-size:10px;">H1</button><span class="miwy-tb-label">Título</span></div>
         <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-btn" title="Agregar Botón"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12a1 1 0 011 1v6a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zm1 2v4h10V6H3z"/></svg></button><span class="miwy-tb-label">Botón</span></div>
         <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-card" title="Agregar Tarjeta"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3a1 1 0 011-1h12a1 1 0 011 1v10a1 1 0 01-1 1H2a1 1 0 01-1-1V3zm2 1v2h10V4H3zm0 4v4h10V8H3z"/></svg></button><span class="miwy-tb-label">Tarjeta</span></div>
         <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-img" title="Imagen / Subir Foto"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1H2zm0 1h12v7.5l-3-3-2 2-3-3-4 4V3zm2 2a1 1 0 100 2 1 1 0 000-2z"/></svg></button><span class="miwy-tb-label">Imagen</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="edit-attr" title="Editar Atributos (URL/Enlace)"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M9.1 4.4L8.4 5.1 10.9 7.6 11.6 6.9C12.4 6.1 12.4 4.8 11.6 4C10.9 3.2 9.8 3.6 9.1 4.4ZM7.7 5.8L4 9.5V12H6.5L10.2 8.3 7.7 5.8Z"/></svg></button><span class="miwy-tb-label">Atributo</span></div>
     </div>
     <div class="miwy-dock-group">
         <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="up" title="Mover arriba"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3.5l-5 5h3.5V13h3V8.5H13l-5-5z"/></svg></button><span class="miwy-tb-label">Arriba</span></div>
