@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIWY Canvas Animation</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #030305;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    }
+
+    .miwy-preview-container {
+      position: relative;
+      width: min(92vw, 950px);
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(255, 0, 50, 0.12), inset 0 0 40px rgba(0, 0, 0, 0.9);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="miwy-preview-container">
+    <canvas id="miwyCanvas"></canvas>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("miwyCanvas");
+      const ctx = canvas.getContext("2d");
+
+      function resize() {
+        canvas.width = canvas.clientWidth * window.devicePixelRatio || 1280;
+        canvas.height = canvas.clientHeight * window.devicePixelRatio || 720;
+      }
+      resize();
+
+      const W = () => canvas.width;
+      const H = () => canvas.height;
+
+      // ---------------------------------------------------------
+      // ESTADOS Y TIEMPOS
+      // TITLE -> SPIDER_DESCEND -> SPIDER_IDLE -> SPIDER_ASCEND -> CODEX -> END_RINGS -> PAUSE
+      // ---------------------------------------------------------
+      let state = "TITLE";
+      let stateTimer = 0;
+
+      // ---------------------------------------------------------
+      // PARED DE LADRILLOS GIGANTES EN 2D (LÍNEAS BLANCAS)
+      // ---------------------------------------------------------
+      function drawGiantBrickWall() {
+        ctx.save();
+        
+        // Escala aumentada proporcional al ancho del lienzo para encajar con el tamaño de la araña
+        const brickWidth = Math.max(160, W() * 0.15);   // Ladrillos masivos
+        const brickHeight = Math.max(70, H() * 0.12);   // Filas amplias
+        
+        const rows = Math.ceil(H() / brickHeight) + 1;
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = "#ff0033";
+        ctx.shadowBlur = 6;
+
+        ctx.beginPath();
+
+        // 1. Líneas horizontales de los ladrillos
+        for (let r = 0; r <= rows; r++) {
+          const y = r * brickHeight;
+          ctx.moveTo(0, y);
+          ctx.lineTo(W(), y);
+        }
+
+        // 2. Uniones verticales intercaladas por fila
+        for (let r = 0; r < rows; r++) {
+          const y = r * brickHeight;
+          const xOffset = (r % 2 === 0) ? 0 : brickWidth / 2;
+
+          for (let x = xOffset; x <= W() + brickWidth; x += brickWidth) {
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + brickHeight);
+          }
+        }
+
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // ---------------------------------------------------------
+      // TÍTULOS ("MIWY" Y "CODEX")
+      // ---------------------------------------------------------
+      let titleScale = 0;
+      let titleOpacity = 0;
+
+      let codexScale = 0;
+      let codexOpacity = 0;
+
+      function renderStyledText(text, opacity, scale) {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        const fontSize = Math.min(W() * 0.13, 100);
+        ctx.font = `800 ${fontSize}px "Trebuchet MS", "Segoe UI", system-ui, sans-serif`;
+
+        const cx = W() / 2;
+        const cy = H() / 2;
+
+        if (opacity > 0) {
+          ctx.globalAlpha = opacity;
+          
+          ctx.shadowColor = "#ff0033";
+          ctx.shadowBlur = 22;
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(scale, scale);
+
+          // Borde Rojo
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = "#ff0033";
+          ctx.strokeText(text, 0, 0);
+
+          // Relleno Blanco
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(text, 0, 0);
+
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+
+      function drawTitle() {
+        if (state === "TITLE") {
+          titleOpacity = Math.min(1, titleOpacity + 0.03);
+          titleScale = 0.88 + titleOpacity * 0.12;
+        } else {
+          titleOpacity = Math.max(0, titleOpacity - 0.03);
+        }
+
+        renderStyledText("MIWY", titleOpacity, titleScale);
+      }
+
+      function drawCodex() {
+        if (state === "CODEX") {
+          codexOpacity = Math.min(1, codexOpacity + 0.03);
+          codexScale = 0.88 + codexOpacity * 0.12;
+        } else {
+          codexOpacity = Math.max(0, codexOpacity - 0.03);
+        }
+
+        renderStyledText("CODEX", codexOpacity, codexScale);
+      }
+
+      // ---------------------------------------------------------
+      // ARAÑA COLOSAL PROCEDIMENTAL
+      // ---------------------------------------------------------
+      class GiantSpider {
+        constructor() {
+          this.x = W() / 2;
+          this.y = -350;
+          this.targetY = H() * 0.48;
+          this.size = Math.min(W() * 0.20, 160);
+          
+          this.legs = [];
+          for (let i = 0; i < 8; i++) {
+            const side = i < 4 ? -1 : 1;
+            const idx = i % 4;
+            this.legs.push({
+              side: side,
+              angleOffset: (-0.65 + idx * 0.43) * side,
+              length: this.size * (1.35 + (idx === 1 || idx === 2 ? 0.35 : 0)),
+              currentX: this.x,
+              currentY: this.y,
+              targetX: this.x,
+              targetY: this.y,
+              stepping: false,
+              stepProgress: 0
+            });
+          }
+          this.bobAngle = 0;
+        }
+
+        update() {
+          this.x = W() / 2;
+          this.size = Math.min(W() * 0.20, 160);
+          this.bobAngle += 0.03;
+          const bob = Math.sin(this.bobAngle) * 14;
+
+          if (state === "SPIDER_DESCEND") {
+            this.y += (this.targetY - this.y) * 0.02;
+            if (Math.abs(this.y - this.targetY) < 2) state = "SPIDER_IDLE";
+          } else if (state === "SPIDER_ASCEND") {
+            this.y += (-400 - this.y) * 0.03;
+            if (this.y < -320) state = "CODEX";
+          }
+
+          const currentPosY = this.y + bob;
+
+          this.legs.forEach((leg) => {
+            const defaultAngle = leg.side === -1 ? Math.PI * 0.85 : Math.PI * 0.15;
+            const finalAngle = defaultAngle + leg.angleOffset;
+
+            const idealX = this.x + Math.cos(finalAngle) * leg.length;
+            const idealY = currentPosY + Math.sin(finalAngle) * leg.length;
+
+            const dist = Math.hypot(leg.currentX - idealX, leg.currentY - idealY);
+
+            if (dist > this.size * 0.45 && !leg.stepping) {
+              leg.stepping = true;
+              leg.targetX = idealX + (Math.random() - 0.5) * 30;
+              leg.targetY = idealY + (Math.random() - 0.5) * 30;
+              leg.stepProgress = 0;
+            }
+
+            if (leg.stepping) {
+              leg.stepProgress += 0.1;
+              leg.currentX += (leg.targetX - leg.currentX) * 0.2;
+              leg.currentY += (leg.targetY - leg.currentY) * 0.2;
+
+              if (leg.stepProgress >= 1) {
+                leg.stepping = false;
+              }
+            }
+          });
+        }
+
+        draw() {
+          if (this.y < -340) return;
+
+          const currentPosY = this.y + Math.sin(this.bobAngle) * 14;
+
+          ctx.save();
+
+          // Telaraña central principal
+          ctx.beginPath();
+          ctx.moveTo(this.x, 0);
+          ctx.lineTo(this.x, currentPosY - this.size * 0.35);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+          ctx.lineWidth = 3.5;
+          ctx.shadowColor = "#ffffff";
+          ctx.shadowBlur = 12;
+          ctx.stroke();
+
+          // Patas masivas
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = Math.max(5, this.size * 0.06);
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+
+          this.legs.forEach(leg => {
+            ctx.beginPath();
+            ctx.moveTo(this.x, currentPosY);
+
+            const midX = (this.x + leg.currentX) / 2 + (leg.side * -35);
+            const midY = Math.min(currentPosY, leg.currentY) - this.size * 0.45;
+
+            ctx.quadraticCurveTo(midX, midY, leg.currentX, leg.currentY);
+            ctx.stroke();
+          });
+
+          // Cuerpo de la Araña Colosal
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = "#ff0033";
+          ctx.shadowBlur = 22;
+
+          // Abdomen
+          ctx.beginPath();
+          ctx.ellipse(this.x, currentPosY - this.size * 0.35, this.size * 0.38, this.size * 0.5, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Cefalotórax
+          ctx.beginPath();
+          ctx.ellipse(this.x, currentPosY + this.size * 0.15, this.size * 0.28, this.size * 0.28, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Pedipalpos
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 4.5;
+          ctx.beginPath();
+          ctx.moveTo(this.x - 12, currentPosY + this.size * 0.38);
+          ctx.lineTo(this.x - 22, currentPosY + this.size * 0.55);
+          ctx.moveTo(this.x + 12, currentPosY + this.size * 0.38);
+          ctx.lineTo(this.x + 22, currentPosY + this.size * 0.55);
+          ctx.stroke();
+
+          // Ojos carmesí brillantes
+          ctx.fillStyle = "#ff0033";
+          ctx.shadowColor = "#ff0033";
+          ctx.shadowBlur = 12;
+          ctx.beginPath();
+          ctx.arc(this.x - 9, currentPosY + this.size * 0.22, 6.5, 0, Math.PI * 2);
+          ctx.arc(this.x + 9, currentPosY + this.size * 0.22, 6.5, 0, Math.PI * 2);
+          ctx.arc(this.x - 22, currentPosY + this.size * 0.2, 4.5, 0, Math.PI * 2);
+          ctx.arc(this.x + 22, currentPosY + this.size * 0.2, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      const spider = new GiantSpider();
+
+      // ---------------------------------------------------------
+      // ONDAS DE CHOQUE (CIRCULOS)
+      // ---------------------------------------------------------
+      class ShockwaveRings {
+        constructor() {
+          this.rings = [];
+        }
+
+        trigger() {
+          this.rings = [
+            { radius: 0, maxRadius: Math.max(W(), H()) * 0.8, opacity: 1, color: "#ff0033", speed: 7 },
+            { radius: -45, maxRadius: Math.max(W(), H()) * 0.8, opacity: 1, color: "#ffffff", speed: 7 },
+            { radius: -90, maxRadius: Math.max(W(), H()) * 0.8, opacity: 1, color: "#ff0033", speed: 7 }
+          ];
+        }
+
+        updateAndDraw() {
+          const cx = W() / 2;
+          const cy = H() / 2;
+
+          ctx.save();
+          this.rings.forEach(r => {
+            r.radius += r.speed;
+
+            if (r.radius > 0) {
+              const alpha = Math.max(0, 1 - (r.radius / r.maxRadius));
+              ctx.strokeStyle = r.color;
+              ctx.shadowColor = r.color;
+              ctx.shadowBlur = 18;
+              ctx.lineWidth = 3.5;
+              ctx.globalAlpha = alpha;
+
+              ctx.beginPath();
+              ctx.arc(cx, cy, r.radius, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          });
+          ctx.restore();
+        }
+      }
+
+      const shockwaves = new ShockwaveRings();
+      shockwaves.trigger();
+
+      // ---------------------------------------------------------
+      // BUCLE PRINCIPAL
+      // ---------------------------------------------------------
+      function loop() {
+        ctx.clearRect(0, 0, W(), H());
+
+        drawGiantBrickWall(); // Dibuja la pared de ladrillos gigantes
+        shockwaves.updateAndDraw();
+
+        drawTitle();
+        drawCodex();
+
+        spider.update();
+        spider.draw();
+
+        stateTimer++;
+
+        if (state === "TITLE" && stateTimer > 220) {
+          state = "SPIDER_DESCEND";
+          stateTimer = 0;
+        } else if (state === "SPIDER_IDLE" && stateTimer > 320) {
+          state = "SPIDER_ASCEND";
+          stateTimer = 0;
+        } else if (state === "CODEX" && stateTimer > 220) {
+          state = "END_RINGS";
+          shockwaves.trigger();
+          stateTimer = 0;
+        } else if (state === "END_RINGS" && stateTimer > 140) {
+          state = "PAUSE";
+          stateTimer = 0;
+        } else if (state === "PAUSE" && stateTimer > 60) {
+          state = "TITLE";
+          shockwaves.trigger();
+          stateTimer = 0;
+        }
+
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener("resize", resize);
+      loop();
+
+    })();
+  </script>
+</body>
+</html>
