@@ -4460,9 +4460,10 @@ function replaceAllMatches() {
                 <span>Recursos</span>
             </div>
             <div style="display:flex; gap:6px;">
+                <button onclick="document.getElementById('newFileButton').click()" style="background:#1b242e; color:#38bdf8; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nuevo Archivo">+ 📄 Archivo</button>
                 <button onclick="createNewFolderPrompt()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nueva Carpeta">+ 📁 Carpeta</button>
                 <button onclick="triggerAssetUpload()" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">+ 🖼️ Subir Archivo</button>
-                <input type="file" id="folderAssetInput" accept="image/*,text/*,application/json,video/*,audio/*" multiple style="display:none;" onchange="handleAssetUpload(event)">
+                <input type="file" id="folderAssetInput" accept="*/*" multiple style="display:none;" onchange="handleAssetUpload(event)">
             </div>
         </div>
 
@@ -4478,54 +4479,67 @@ function replaceAllMatches() {
             ⚡ Arrastra y suelta archivos aquí para organizarlos automáticamente por tipo en tu proyecto.
         </div>
 
-        <!-- INTEGRATED CODE EDITOR AREA INSIDE RECURSOS -->
-        <div id="codeView" style="display:none; flex-direction:column; height:320px; border-top:1px solid #25323f; margin-top:10px; background:#0d1117; border-radius:8px; overflow:hidden; position:relative;">
-
-            <!-- BUSCADOR Y REEMPLAZO DE CÓDIGO -->
-            <div id="codeSearchContainer" style="display:none; padding:6px 10px; background:#0e0e0e; border-bottom:1px solid #222; flex-wrap:wrap; gap:8px; align-items:center; flex-shrink:0;">
-                <div style="display:flex; align-items:center; gap:5px; flex:1; min-width:180px;">
-                    <span style="font-size:11px; color:#aaa;">🔍</span>
-                    <input id="codeSearchInput" type="text" placeholder="Buscar en código..." style="flex:1; height:26px; background:#141414; border:1px solid #333; border-radius:4px; color:#fff; padding:0 8px; font-size:11px; outline:none;">
-                </div>
-                <div style="display:flex; align-items:center; gap:5px; flex:1; min-width:180px;">
-                    <span style="font-size:11px; color:#aaa;">✏️</span>
-                    <input id="codeReplaceInput" type="text" placeholder="Reemplazar con..." style="flex:1; height:26px; background:#141414; border:1px solid #333; border-radius:4px; color:#fff; padding:0 8px; font-size:11px; outline:none;">
-                </div>
-                <div style="display:flex; align-items:center; gap:4px;">
-                    <span id="codeSearchMatchCount" style="font-size:10px; color:#888; min-width:45px; text-align:center;">0 / 0</span>
-                    <button id="codeSearchPrevBtn" class="preview-button" style="height:26px; padding:0 6px; font-size:10px;" title="Anterior (Shift+Enter)">▲</button>
-                    <button id="codeSearchNextBtn" class="preview-button" style="height:26px; padding:0 6px; font-size:10px;" title="Siguiente (Enter)">▼</button>
-                    <button id="codeReplaceBtn" class="preview-button" style="height:26px; padding:0 8px; font-size:10px; color:var(--orange);" title="Reemplazar coincidencia actual">Reemplazar</button>
-                    <button id="codeReplaceAllBtn" class="preview-button" style="height:26px; padding:0 8px; font-size:10px; color:var(--orange);" title="Reemplazar todo">Todo</button>
-                    <button id="codeSearchCloseBtn" class="preview-button" style="height:26px; padding:0 6px; font-size:12px; color:#888;" title="Cerrar buscador">×</button>
-                </div>
-            </div>
-
-            <div id="fileBar" class="file-bar"></div>
-
-            <div class="editor-wrapper">
-                <textarea
-                    id="codeEditor"
-                    class="code-editor locked"
-                    spellcheck="false"
-                    disabled
-                    placeholder="Selecciona o crea un archivo en Recursos para comenzar..."></textarea>
-
-                <!-- POPUP DE AUTO-COMPLETADO (INTELLISENSE) -->
-                <div id="autocompletePopup" style="display:none; position:absolute; bottom:30px; left:20px; z-index:100; background:#141414; border:1px solid #333; border-radius:6px; box-shadow:0 10px 25px rgba(0,0,0,0.6); max-height:180px; width:220px; overflow-y:auto; padding:4px 0;"></div>
-
-                <div id="emptyEditor" class="empty-editor">
-                    <span>Selecciona un archivo de Recursos para editar</span>
+        <!-- CODE EDITOR FLOATING MODAL DIALOG (OPENS ONLY ON 'EDITAR') -->
+        <div id="codeEditorModal" class="overlay">
+            <div class="dialog" style="width: 780px; max-width: calc(100vw - 24px); height: 520px; display: flex; flex-direction: column; padding: 12px; background: #0d1117; border: 1px solid #263442; border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #212e3b; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; color: #fff;">
+                        <span id="modalFileIcon">📄</span>
+                        <span id="modalFileName">Editar Archivo</span>
+                    </div>
+                    <button onclick="closeCodeEditorModal()" style="background: transparent; color: #888; border: none; font-size: 18px; cursor: pointer; padding: 0 4px;" title="Cerrar Editor">×</button>
                 </div>
 
-                <!-- AVISO DE ERROR DE SINTAXIS REALTIME -->
-                <div id="editorSyntaxNotice" style="display:none; position:absolute; bottom:0; left:0; right:0; z-index:90; padding:6px 12px; background:#200a0a; border-top:1px solid #ff4d4d; color:#ff9999; font-size:11px; font-family:Consolas, monospace; align-items:center; justify-content:space-between; flex-shrink:0;"></div>
-            </div>
+                <!-- INTEGRATED CODE EDITOR AREA INSIDE MODAL -->
+                <div id="codeView" style="display: flex; flex-direction: column; flex: 1; min-height: 0; background: #0d1117; position: relative;">
 
-            <div class="code-footer">
-                <span id="fileFooterName">Sin archivo</span>
-                <button id="copyCodeBtn" class="preview-button" style="height:22px; padding:0 8px; font-size:10px; color:#aaa; gap:4px;" title="Copiar código al portapapeles">📋 Copiar</button>
-                <span id="lineCounter" class="line-counter">0 líneas</span>
+                    <!-- BUSCADOR Y REEMPLAZO DE CÓDIGO -->
+                    <div id="codeSearchContainer" style="display:none; padding:6px 10px; background:#0e0e0e; border-bottom:1px solid #222; flex-wrap:wrap; gap:8px; align-items:center; flex-shrink:0;">
+                        <div style="display:flex; align-items:center; gap:5px; flex:1; min-width:180px;">
+                            <span style="font-size:11px; color:#aaa;">🔍</span>
+                            <input id="codeSearchInput" type="text" placeholder="Buscar en código..." style="flex:1; height:26px; background:#141414; border:1px solid #333; border-radius:4px; color:#fff; padding:0 8px; font-size:11px; outline:none;">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:5px; flex:1; min-width:180px;">
+                            <span style="font-size:11px; color:#aaa;">✏️</span>
+                            <input id="codeReplaceInput" type="text" placeholder="Reemplazar con..." style="flex:1; height:26px; background:#141414; border:1px solid #333; border-radius:4px; color:#fff; padding:0 8px; font-size:11px; outline:none;">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            <span id="codeSearchMatchCount" style="font-size:10px; color:#888; min-width:45px; text-align:center;">0 / 0</span>
+                            <button id="codeSearchPrevBtn" class="preview-button" style="height:26px; padding:0 6px; font-size:10px;" title="Anterior (Shift+Enter)">▲</button>
+                            <button id="codeSearchNextBtn" class="preview-button" style="height:26px; padding:0 6px; font-size:10px;" title="Siguiente (Enter)">▼</button>
+                            <button id="codeReplaceBtn" class="preview-button" style="height:26px; padding:0 8px; font-size:10px; color:var(--orange);" title="Reemplazar coincidencia actual">Reemplazar</button>
+                            <button id="codeReplaceAllBtn" class="preview-button" style="height:26px; padding:0 8px; font-size:10px; color:var(--orange);" title="Reemplazar todo">Todo</button>
+                            <button id="codeSearchCloseBtn" class="preview-button" style="height:26px; padding:0 6px; font-size:12px; color:#888;" title="Cerrar buscador">×</button>
+                        </div>
+                    </div>
+
+                    <div id="fileBar" class="file-bar"></div>
+
+                    <div class="editor-wrapper">
+                        <textarea
+                            id="codeEditor"
+                            class="code-editor locked"
+                            spellcheck="false"
+                            disabled
+                            placeholder="Selecciona o crea un archivo en Recursos para comenzar..."></textarea>
+
+                        <!-- POPUP DE AUTO-COMPLETADO (INTELLISENSE) -->
+                        <div id="autocompletePopup" style="display:none; position:absolute; bottom:30px; left:20px; z-index:100; background:#141414; border:1px solid #333; border-radius:6px; box-shadow:0 10px 25px rgba(0,0,0,0.6); max-height:180px; width:220px; overflow-y:auto; padding:4px 0;"></div>
+
+                        <div id="emptyEditor" class="empty-editor">
+                            <span>Selecciona un archivo de Recursos para editar</span>
+                        </div>
+
+                        <!-- AVISO DE ERROR DE SINTAXIS REALTIME -->
+                        <div id="editorSyntaxNotice" style="display:none; position:absolute; bottom:0; left:0; right:0; z-index:90; padding:6px 12px; background:#200a0a; border-top:1px solid #ff4d4d; color:#ff9999; font-size:11px; font-family:Consolas, monospace; align-items:center; justify-content:space-between; flex-shrink:0;"></div>
+                    </div>
+
+                    <div class="code-footer">
+                        <span id="fileFooterName">Sin archivo</span>
+                        <button id="copyCodeBtn" class="preview-button" style="height:22px; padding:0 8px; font-size:10px; color:#aaa; gap:4px;" title="Copiar código al portapapeles">📋 Copiar</button>
+                        <span id="lineCounter" class="line-counter">0 líneas</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -5772,7 +5786,10 @@ function renderFolderManager(dirPath = "/"){
         item.innerHTML = `
             <div style="font-size:28px;">📁</div>
             <div style="font-size:11px; color:#edf2f7; font-weight:600; text-align:center; word-break:break-all;">${escapeHTML(folderName)}</div>
-            <button title="Renombrar carpeta" onclick="event.stopPropagation(); renameFolderPrompt('${fullFolderPath}', '${folderName}')" style="position:absolute; top:4px; right:4px; background:transparent; color:#8a99ad; border:none; font-size:10px; cursor:pointer; padding:2px;">✎</button>
+            <div style="position:absolute; top:4px; right:4px; display:flex; gap:2px;">
+                <button title="Renombrar carpeta" onclick="event.stopPropagation(); renameFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:#8a99ad; border:none; font-size:10px; cursor:pointer; padding:2px;">✎</button>
+                <button title="Eliminar carpeta" onclick="event.stopPropagation(); deleteFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:var(--danger); border:none; font-size:10px; cursor:pointer; padding:2px;">🗑</button>
+            </div>
         `;
         grid.appendChild(item);
     });
@@ -5817,12 +5834,19 @@ function renderFolderManager(dirPath = "/"){
             };
 
             const previewIcon = isImage
-                ? `<img src="${content}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #334155;">`
-                : `<div style="font-size:24px;">📄</div>`;
+                ? `<img src="${content}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #334155;">`
+                : `<div style="font-size:24px;">${typeof getFileIcon === "function" ? getFileIcon(filename) : "📄"}</div>`;
+
+            const isCodeFile = !isImage;
 
             item.innerHTML = `
                 ${previewIcon}
                 <div style="font-size:10px; color:#cbd5e1; font-weight:500; text-align:center; word-break:break-all; max-width:100%; line-height:1.2;">${escapeHTML(displayName)}</div>
+                <div style="display:flex; gap:4px; margin-top:4px; width:100%; justify-content:center;">
+                    <button onclick="event.stopPropagation(); selectFile('${filename}')" style="background:#1e293b; color:#38bdf8; border:1px solid #334155; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:600;" title="Abrir y vista previa">Abrir</button>
+                    ${isCodeFile ? `<button onclick="event.stopPropagation(); openCodeEditorModal('${filename}')" style="background:#2b180d; color:var(--orange); border:1px solid #ff6a0040; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:700;" title="Editar código">Editar</button>` : ''}
+                    <button onclick="event.stopPropagation(); deleteFile('${filename}')" style="background:#251010; color:var(--danger); border:1px solid #ff4d4d33; border-radius:4px; padding:2px 5px; font-size:9px; cursor:pointer;" title="Eliminar archivo">🗑</button>
+                </div>
             `;
             grid.appendChild(item);
         }
@@ -5833,12 +5857,45 @@ function renderFolderManager(dirPath = "/"){
     }
 }
 
+function deleteFolderPrompt(folderPath, folderName) {
+    const project = getCurrentProject();
+    if (!project) return;
+
+    showCustomDialog({
+        title: "Eliminar Carpeta",
+        description: `¿Seguro que deseas eliminar la carpeta "${folderName}" y todo su contenido? Esta acción no se puede deshacer.`,
+        confirmText: "Eliminar",
+        isDanger: true,
+        onConfirm: () => {
+            if (Array.isArray(project.folders)) {
+                project.folders = project.folders.filter(f => !f.startsWith(folderPath));
+            }
+            if (project.files) {
+                Object.keys(project.files).forEach(fName => {
+                    if (fName.startsWith(folderPath)) {
+                        delete project.files[fName];
+                        if (currentFileName === fName) {
+                            currentFileName = null;
+                        }
+                    }
+                });
+            }
+            saveProjects();
+            renderFiles();
+            renderFolderManager(currentFolderDirectory);
+            updatePreview();
+            showTopNotification(`🗑 Carpeta "${folderName}" eliminada`, null, 2000);
+        }
+    });
+}
+
 function createNewFolderPrompt(){
     showCustomDialog({
         title: "Nueva Carpeta",
         description: "Ingresa el nombre de la carpeta para organizar tus recursos:",
         showInput: true,
-        inputValue: "imagenes",
+        inputValue: "",
+        placeholder: "Nombre de la carpeta...",
         confirmText: "Crear",
         onConfirm: (folderName) => {
             if(!folderName || !folderName.trim()) return;
@@ -5924,6 +5981,96 @@ function processUploadedFiles(files){
     });
 }
 
+async function scanDataTransferItems(items) {
+    const fileEntries = [];
+
+    async function traverseEntry(entry, currentPath = "") {
+        if (entry.isFile) {
+            return new Promise((resolve) => {
+                entry.file((file) => {
+                    fileEntries.push({
+                        file: file,
+                        relativePath: currentPath ? currentPath + "/" + file.name : (file.webkitRelativePath || file.name)
+                    });
+                    resolve();
+                });
+            });
+        } else if (entry.isDirectory) {
+            const dirReader = entry.createReader();
+            const entries = await new Promise((resolve) => {
+                dirReader.readEntries((results) => resolve(results));
+            });
+            const subDirPath = currentPath ? currentPath + "/" + entry.name : entry.name;
+            for (const subEntry of entries) {
+                await traverseEntry(subEntry, subDirPath);
+            }
+        }
+    }
+
+    const promises = [];
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file") {
+            const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+            if (entry) {
+                promises.push(traverseEntry(entry, ""));
+            } else {
+                const file = item.getAsFile();
+                if (file) {
+                    fileEntries.push({ file: file, relativePath: file.name });
+                }
+            }
+        }
+    }
+    await Promise.all(promises);
+    return fileEntries;
+}
+
+function processDroppedFolderTree(fileEntries) {
+    const project = getCurrentProject();
+    if (!project) return;
+    if (!project.files) project.files = {};
+    if (!project.folders) project.folders = [];
+
+    const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
+
+    let loadedCount = 0;
+    fileEntries.forEach(({ file, relativePath }) => {
+        const fullPath = prefix + relativePath;
+
+        // Add parent directory to project.folders if contained in relativePath
+        const parts = fullPath.split("/");
+        if (parts.length > 1) {
+            let folderAcc = "";
+            for (let i = 0; i < parts.length - 1; i++) {
+                folderAcc += parts[i] + "/";
+                if (!project.folders.includes(folderAcc)) {
+                    project.folders.push(folderAcc);
+                }
+            }
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            project.files[fullPath] = e.target.result;
+            loadedCount++;
+            if (loadedCount === fileEntries.length) {
+                saveProjects();
+                renderFiles();
+                renderFolderManager(currentFolderDirectory || "/");
+                updatePreview();
+                showTopNotification(`✅ ${fileEntries.length} recurso(s) y carpetas importados`, null, 2500);
+            }
+        };
+
+        if (file.type && file.type.startsWith("image/")) {
+            reader.readAsDataURL(file);
+        } else {
+            reader.readAsText(file);
+        }
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     const workspace = document.getElementById("workspace");
     if (!workspace) return;
@@ -5933,9 +6080,18 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
     });
 
-    window.addEventListener("drop", (e) => {
+    window.addEventListener("drop", async (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+            const fileEntries = await scanDataTransferItems(e.dataTransfer.items);
+            if (fileEntries.length > 0) {
+                processDroppedFolderTree(fileEntries);
+                return;
+            }
+        }
+
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             processUploadedFiles(Array.from(e.dataTransfer.files));
         }
@@ -5969,47 +6125,64 @@ projects.forEach(project => {
 ===================================================== */
 
 function getFileType(filename){
+    if (!filename) return "file";
+    const ext = filename.split(".").pop().toLowerCase();
 
-    const ext =
-        filename
-            .split(".")
-            .pop()
-            .toLowerCase();
-
-    if(ext === "html" || ext === "htm")
-        return "html";
-
-    if(ext === "js" || ext === "mjs")
-        return "js";
-
-    if(ext === "css")
-        return "css";
-
-    if(ext === "json")
-        return "json";
-
-    if(ext === "svg")
-        return "svg";
-
-    if(ext === "txt")
-        return "text";
+    if (ext === "html" || ext === "htm") return "html";
+    if (ext === "js" || ext === "mjs" || ext === "cjs") return "js";
+    if (ext === "ts" || ext === "mts") return "ts";
+    if (ext === "jsx") return "jsx";
+    if (ext === "tsx") return "tsx";
+    if (ext === "css" || ext === "scss" || ext === "sass" || ext === "less") return "css";
+    if (ext === "json" || ext === "json5") return "json";
+    if (ext === "py") return "python";
+    if (ext === "java") return "java";
+    if (ext === "cpp" || ext === "c" || ext === "h" || ext === "hpp" || ext === "cc") return "cpp";
+    if (ext === "cs") return "csharp";
+    if (ext === "php") return "php";
+    if (ext === "go") return "go";
+    if (ext === "rs") return "rust";
+    if (ext === "rb") return "ruby";
+    if (ext === "sql") return "sql";
+    if (ext === "md" || ext === "markdown") return "markdown";
+    if (ext === "xml") return "xml";
+    if (ext === "svg") return "svg";
+    if (["png", "jpg", "jpeg", "gif", "webp", "ico", "bmp"].includes(ext)) return "image";
+    if (["mp3", "wav", "ogg", "m4a", "flac"].includes(ext)) return "audio";
+    if (["mp4", "webm", "mkv", "avi"].includes(ext)) return "video";
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archive";
+    if (ext === "txt") return "text";
 
     return "file";
 }
 
-
 function getFileIcon(filename){
+    const type = getFileType(filename);
 
-    const type =
-        getFileType(filename);
+    if (type === "html") return `<span style="color:#e34f26; font-weight:bold;">🌐 HTML</span>`;
+    if (type === "css") return `<span style="color:#1572b6; font-weight:bold;">🎨 CSS</span>`;
+    if (type === "js") return `<span style="color:#f7df1e; font-weight:bold;">⚡ JS</span>`;
+    if (type === "ts") return `<span style="color:#3178c6; font-weight:bold;">🟦 TS</span>`;
+    if (type === "jsx" || type === "tsx") return `<span style="color:#61dafb; font-weight:bold;">⚛️ React</span>`;
+    if (type === "json") return `<span style="color:#f29d27; font-weight:bold;">🧩 JSON</span>`;
+    if (type === "python") return `<span style="color:#3776ab; font-weight:bold;">🐍 Py</span>`;
+    if (type === "java") return `<span style="color:#5382a1; font-weight:bold;">☕ Java</span>`;
+    if (type === "cpp") return `<span style="color:#00599c; font-weight:bold;">⚙️ C++</span>`;
+    if (type === "csharp") return `<span style="color:#68217a; font-weight:bold;">💜 C#</span>`;
+    if (type === "php") return `<span style="color:#777bb4; font-weight:bold;">🐘 PHP</span>`;
+    if (type === "go") return `<span style="color:#00add8; font-weight:bold;">🐹 Go</span>`;
+    if (type === "rust") return `<span style="color:#dea584; font-weight:bold;">🦀 Rust</span>`;
+    if (type === "ruby") return `<span style="color:#cc342d; font-weight:bold;">💎 Ruby</span>`;
+    if (type === "sql") return `<span style="color:#e38c00; font-weight:bold;">🗄️ SQL</span>`;
+    if (type === "markdown") return `<span style="color:#083344; font-weight:bold;">📝 MD</span>`;
+    if (type === "xml") return `<span style="color:#ff6600; font-weight:bold;">🏷️ XML</span>`;
+    if (type === "svg") return `<span style="color:#ffb300; font-weight:bold;">◇ SVG</span>`;
+    if (type === "image") return `🖼️`;
+    if (type === "audio") return `🎵`;
+    if (type === "video") return `🎬`;
+    if (type === "archive") return `📦`;
 
-    if(type === "html") return "📄";
-    if(type === "css") return "🎨";
-    if(type === "js") return "⚡";
-    if(type === "json") return "🧩";
-    if(type === "svg") return "◇";
-
-    return "📄";
+    return `📄`;
 }
 
 
@@ -6196,35 +6369,48 @@ function createFile(){
     project.files[name] = "";
     saveProjects();
     selectFile(name);
+    renderFolderManager(currentFolderDirectory);
     fileDialog.classList.remove("open");
 }
 
 
 /* =====================================================
-   SELECCIONAR ARCHIVO
+   SELECCIONAR / EDITAR ARCHIVO DE CÓDIGO EN MODAL
 ===================================================== */
 
-function selectFile(filename){
+function openCodeEditorModal(filename) {
+    if (!filename) return;
     saveCurrentFile();
 
     const project = getCurrentProject();
-    if(!project) return;
+    if (!project || project.files[filename] === undefined) return;
 
     currentFileName = filename;
 
+    const modal = document.getElementById("codeEditorModal");
+    const nameEl = document.getElementById("modalFileName");
+    const iconEl = document.getElementById("modalFileIcon");
     const codeView = document.getElementById("codeView");
+
+    if (nameEl) nameEl.textContent = filename;
+    if (iconEl && typeof getFileIcon === "function") iconEl.innerHTML = getFileIcon(filename);
+
     if (codeView) codeView.style.display = "flex";
+    if (modal) modal.classList.add("open");
 
-    codeEditor.style.display = "block";
     setEditorLocked(false);
-
-    codeEditor.value = project.files[filename] || "";
+    if (codeEditor) {
+        codeEditor.style.display = "block";
+        codeEditor.value = project.files[filename] || "";
+        setTimeout(() => codeEditor.focus(), 50);
+    }
 
     if (currentFileHeader) {
         currentFileHeader.textContent = `📁 Recursos / ${filename}`;
     }
-
-    fileFooterName.textContent = filename;
+    if (fileFooterName) {
+        fileFooterName.textContent = filename;
+    }
 
     renderFiles();
     updateLineCounter();
@@ -6233,6 +6419,20 @@ function selectFile(filename){
     }
     updatePreview();
     saveProjects();
+}
+
+function closeCodeEditorModal() {
+    saveCurrentFile();
+    const modal = document.getElementById("codeEditorModal");
+    if (modal) modal.classList.remove("open");
+    updatePreview();
+}
+
+function selectFile(filename){
+    if (!filename) return;
+    saveCurrentFile();
+    currentFileName = filename;
+    updatePreview();
 }
 
 
@@ -6405,6 +6605,7 @@ function deleteFile(filename){
 
             saveProjects();
             renderFiles();
+            renderFolderManager(currentFolderDirectory);
         }
     });
 }
