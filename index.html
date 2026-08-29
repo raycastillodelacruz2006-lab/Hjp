@@ -2245,12 +2245,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .miwy-open-btn { background: var(--miwy-orange); border-color: var(--miwy-orange); }
 .miwy-open-btn:hover { background: var(--miwy-orange-soft); border-color: var(--miwy-orange-soft); }
 
-.panel-header { height: 46px; padding: 0 16px; background: #10151c; border-bottom-color: #22303b; }
-.main-tab-btn { height: 32px; padding: 0 12px; border-radius: 7px; }
-.main-tab-btn.active { background: #2a1c12; border-color: #72451f; }
-.file-bar { min-height: 38px; padding: 5px 10px; background: #0c1116; border-bottom-color: #22303b; }
-.file-tab { height: 28px; background: #121921; border-color: #24323e; }
-.file-tab.active { background: #241a12; border-color: #72451f; }
+.panel-header { height: 44px; padding: 0 16px; background: #181e24; border-bottom-color: #2b3846; }
+.main-tab-btn { height: 30px; padding: 0 12px; border-radius: 6px; font-weight: 600; letter-spacing: 0.01em; }
+.main-tab-btn.active { background: #2b180d; border-color: #ff6a0050; color: var(--orange); }
+.file-bar { min-height: 36px; padding: 4px 10px; background: #12181f; border-bottom-color: #25323f; }
+.file-tab { height: 28px; background: #182028; border-color: #2b3a48; font-weight: 500; }
+.file-tab.active { background: #2b180d; border-color: #ff6a0050; color: var(--orange); }
 .code-editor { padding: 22px 24px; font-size: 13px; line-height: 1.7; }
 .code-footer { height: 34px; padding: 0 16px; background: #10151c; border-top-color: #22303b; }
 .preview-panel { background: #0d1217; }
@@ -4300,21 +4300,21 @@ function replaceAllMatches() {
                     id="tabCodeBtn"
                     class="main-tab-btn active"
                     onclick="switchMainTab('code')">
-                    📄 Código
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M4.7 14.7l-4-4-.7-.7.7-.7 4-4 .7.7L1.8 10l3.6 3.6-.7.7zm6.6 0l4-4 .7-.7-.7-.7-4-4-.7.7 3.6 3.6-3.6 3.6.7.7zM8.8 3l-3 10 .9.3 3-10-.9-.3z"/></svg>Código
                 </button>
 
                 <button
                     id="tabAiBtn"
                     class="main-tab-btn"
                     onclick="switchMainTab('ai')">
-                    🕷️ Miwy
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 1a2.5 2.5 0 00-2.5 2.5V4H4a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-1.5v-.5A2.5 2.5 0 008 1zm1 3V3.5a1.5 1.5 0 00-3 0V4h3zM4 5h8a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg>Miwy
                 </button>
 
                 <button
                     id="tabConsoleBtn"
                     class="main-tab-btn"
                     onclick="switchMainTab('console')">
-                    📟 Consola <span id="consoleBadge" style="background:var(--orange); color:#000; border-radius:10px; padding:1px 6px; font-size:9px; font-weight:bold; display:none;">0</span>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1zM2 1h12a2 2 0 012 2v10a2 2 0 01-2 2H2a2 2 0 01-2-2V3a2 2 0 012-2zm2.15 3.15L7.3 7.3a.5.5 0 010 .7L4.15 11.15l-.7-.7L6.24 7.65 3.45 4.85l.7-.7zM8 11h4v1H8v-1z"/></svg>Consola <span id="consoleBadge" style="background:var(--orange); color:#000; border-radius:10px; padding:1px 6px; font-size:9px; font-weight:bold; display:none;">0</span>
                 </button>
             </div>
 
@@ -8007,7 +8007,7 @@ function reloadRealPhoneFrame() {
         <span>⋮⋮</span>
     </div>
     <div class="miwy-dock-group">
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="text" title="Editar texto">✏️</button><span class="miwy-tb-label">Texto</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="text" title="Editar texto"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M13.23 1l2.77 2.77-9.69 9.69H3.54V10.7L13.23 1zM2 14h12v1H2v-1z"/></svg></button><span class="miwy-tb-label">Texto</span></div>
         <div class="miwy-tb-item">
             <label class="miwy-chromatic-circle" title="Círculo Cromático (Color / Fondo)">
                 <input type="color" id="__parent_chromaticColor" value="#ff6a00">
@@ -8016,24 +8016,24 @@ function reloadRealPhoneFrame() {
         </div>
     </div>
     <div class="miwy-dock-group">
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="font-plus" title="Aumentar fuente">A+</button><span class="miwy-tb-label">Aumentar</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="font-minus" title="Reducir fuente">A-</button><span class="miwy-tb-label">Reducir</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="bold" title="Negrita"><b>B</b></button><span class="miwy-tb-label">Negrita</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="align" title="Alinear texto">↔️</button><span class="miwy-tb-label">Alinear</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="radius" title="Redondear bordes">⭕</button><span class="miwy-tb-label">Borde</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="font-plus" title="Aumentar fuente" style="font-weight:bold; font-size:11px;">A+</button><span class="miwy-tb-label">Aumentar</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="font-minus" title="Reducir fuente" style="font-weight:bold; font-size:11px;">A-</button><span class="miwy-tb-label">Reducir</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="bold" title="Negrita" style="font-weight:bold; font-size:12px;">B</button><span class="miwy-tb-label">Negrita</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="align" title="Alinear texto"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1H2V3zm0 4h8v1H2V7zm0 4h12v1H2v-1z"/></svg></button><span class="miwy-tb-label">Alinear</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="radius" title="Redondear bordes"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h4v1H4v3H3V3zm10 0h-4v1h3v3h1V3zM3 13h4v-1H4v-3H3v4zm10 0h-4v-1h3v-3h1v4z"/></svg></button><span class="miwy-tb-label">Borde</span></div>
     </div>
     <div class="miwy-dock-group">
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-title" title="Agregar Título">H1</button><span class="miwy-tb-label">Título</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-btn" title="Agregar Botón">🔘</button><span class="miwy-tb-label">Botón</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-card" title="Agregar Tarjeta">🎴</button><span class="miwy-tb-label">Tarjeta</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-img" title="Imagen / Subir Foto">🖼️</button><span class="miwy-tb-label">Imagen</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="edit-attr" title="Editar Atributos (URL/Enlace)">⚙️</button><span class="miwy-tb-label">Atributo</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-title" title="Agregar Título" style="font-weight:bold; font-size:10px;">H1</button><span class="miwy-tb-label">Título</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-btn" title="Agregar Botón"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12a1 1 0 011 1v6a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zm1 2v4h10V6H3z"/></svg></button><span class="miwy-tb-label">Botón</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-card" title="Agregar Tarjeta"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 3a1 1 0 011-1h12a1 1 0 011 1v10a1 1 0 01-1 1H2a1 1 0 01-1-1V3zm2 1v2h10V4H3zm0 4v4h10V8H3z"/></svg></button><span class="miwy-tb-label">Tarjeta</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="add-img" title="Imagen / Subir Foto"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1H2zm0 1h12v7.5l-3-3-2 2-3-3-4 4V3zm2 2a1 1 0 100 2 1 1 0 000-2z"/></svg></button><span class="miwy-tb-label">Imagen</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="edit-attr" title="Editar Atributos (URL/Enlace)"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M9.1 4.4L8.4 5.1 10.9 7.6 11.6 6.9C12.4 6.1 12.4 4.8 11.6 4C10.9 3.2 9.8 3.6 9.1 4.4ZM7.7 5.8L4 9.5V12H6.5L10.2 8.3 7.7 5.8Z"/></svg></button><span class="miwy-tb-label">Atributo</span></div>
     </div>
     <div class="miwy-dock-group">
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="up" title="Mover arriba">⬆️</button><span class="miwy-tb-label">Arriba</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="down" title="Mover abajo">⬇️</button><span class="miwy-tb-label">Abajo</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="dup" title="Duplicar">📋</button><span class="miwy-tb-label">Duplicar</span></div>
-        <div class="miwy-tb-item"><button class="miwy-tb-btn danger" data-act="del" title="Eliminar">🗑️</button><span class="miwy-tb-label">Borrar</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="up" title="Mover arriba"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 3.5l-5 5h3.5V13h3V8.5H13l-5-5z"/></svg></button><span class="miwy-tb-label">Arriba</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="down" title="Mover abajo"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 12.5l5-5H9.5V3h-3v4.5H3l5 5z"/></svg></button><span class="miwy-tb-label">Abajo</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn" data-act="dup" title="Duplicar"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2h8a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1zm0 1v8h8V3H4zm-2 2H1v9a1 1 0 001 1h9v-1H2V5z"/></svg></button><span class="miwy-tb-label">Duplicar</span></div>
+        <div class="miwy-tb-item"><button class="miwy-tb-btn danger" data-act="del" title="Eliminar"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg></button><span class="miwy-tb-label">Borrar</span></div>
     </div>
     <input type="file" id="__parent_fileInput" accept="image/*" style="display:none;">
 </div>
