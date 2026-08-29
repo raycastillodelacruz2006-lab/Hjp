@@ -4304,10 +4304,10 @@ function replaceAllMatches() {
                 </button>
 
                 <button
-                    id="tabAiBtn"
+                    id="tabFolderBtn"
                     class="main-tab-btn"
-                    onclick="switchMainTab('ai')">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 1a2.5 2.5 0 00-2.5 2.5V4H4a2 2 0 00-2 2v6a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-1.5v-.5A2.5 2.5 0 008 1zm1 3V3.5a1.5 1.5 0 00-3 0V4h3zM4 5h8a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg>Miwy
+                    onclick="switchMainTab('folder')">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h3.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A.5.5 0 0 0 8.914 3H13a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.5v-10zM3 2a.5.5 0 0 0-.5.5v10a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H8.914a1.5 1.5 0 0 1-1.06-.44L6.439 1.646A.5.5 0 0 0 6.086 1.5H3z"/></svg>Carpetas
                 </button>
 
                 <button
@@ -4404,27 +4404,30 @@ function replaceAllMatches() {
         </div>
     </div>
 
-    <!-- TAB CONTENT: MIWY AI -->
-    <div id="aiView" class="ai-tab-container" style="display:none;">
-        <div id="aiMessages" class="ai-messages">
-            <div class="ai-message system">
-                ¡Hola! Soy Miwy, tu asistente virtual.
+    <!-- TAB CONTENT: CARPETAS Y ARCHIVOS (WINDOWS STYLE FILE EXPLORER) -->
+    <div id="folderView" class="folder-tab-container" style="display:none; flex:1; min-height:0; flex-direction:column; background:#10151c; padding:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:1px solid #25323f; margin-bottom:10px;">
+            <div style="font-size:12px; font-weight:bold; color:#edf2f7; display:flex; align-items:center; gap:8px;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--orange)"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h3.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A.5.5 0 0 0 8.914 3H13a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.5v-10z"/></svg>
+                <span>Gestor de Carpetas y Recursos</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+                <button onclick="createNewFolderPrompt()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nueva Carpeta">+ 📁 Carpeta</button>
+                <button onclick="triggerAssetUpload()" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">+ 🖼️ Subir Archivo</button>
+                <input type="file" id="folderAssetInput" accept="image/*,text/*,application/json" multiple style="display:none;" onchange="handleAssetUpload(event)">
             </div>
         </div>
 
-        <div class="ai-input-row">
-            <input
-                id="aiInput"
-                class="ai-input"
-                placeholder="Se integrará pronto"
-                disabled>
+        <div id="folderBreadcrumb" style="font-size:11px; color:#91a0ad; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+            <span style="color:var(--orange); cursor:pointer;" onclick="renderFolderManager('/')">📁 Raíz</span>
+        </div>
 
-            <button
-                id="aiSend"
-                class="ai-send"
-                title="Enviar">
-                ➜
-            </button>
+        <div id="folderGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap:10px; align-content:start; padding:4px;">
+            <!-- Folder & File Items Rendered Dynamically -->
+        </div>
+
+        <div style="font-size:10px; color:#627382; padding-top:8px; border-top:1px solid #1a232c; text-align:center;">
+            ⚡ Los archivos e imágenes subidos en estas carpetas se conectan automáticamente con tu código app/web.
         </div>
     </div>
 
@@ -5516,25 +5519,27 @@ document.addEventListener("DOMContentLoaded", () => {
    CAMBIO DE PESTAÑAS PRINCIPALES (CÓDIGO / MIWY / PROYECTOS)
 ===================================================== */
 
+let currentFolderDirectory = "/";
+
 function switchMainTab(tab){
     currentActiveTab = tab;
 
     const codeBtn = document.getElementById("tabCodeBtn");
-    const aiBtn = document.getElementById("tabAiBtn");
+    const folderBtn = document.getElementById("tabFolderBtn");
     const consoleBtn = document.getElementById("tabConsoleBtn");
 
     const codeView = document.getElementById("codeView");
-    const aiView = document.getElementById("aiView");
+    const folderView = document.getElementById("folderView");
     const consoleView = document.getElementById("consoleView");
 
     const newFileBtn = document.getElementById("newFileButton");
 
     if (codeBtn) codeBtn.classList.remove("active");
-    if (aiBtn) aiBtn.classList.remove("active");
+    if (folderBtn) folderBtn.classList.remove("active");
     if (consoleBtn) consoleBtn.classList.remove("active");
 
     if (codeView) codeView.style.display = "none";
-    if (aiView) aiView.style.display = "none";
+    if (folderView) folderView.style.display = "none";
     if (consoleView) consoleView.style.display = "none";
 
     if(tab === "code"){
@@ -5542,11 +5547,12 @@ function switchMainTab(tab){
         if (codeView) codeView.style.display = "flex";
         if (newFileBtn) newFileBtn.style.display = "flex";
         if (currentFileHeader) currentFileHeader.textContent = currentFileName || "Sin archivo";
-    } else if(tab === "ai"){
-        if (aiBtn) aiBtn.classList.add("active");
-        if (aiView) aiView.style.display = "flex";
+    } else if(tab === "folder"){
+        if (folderBtn) folderBtn.classList.add("active");
+        if (folderView) folderView.style.display = "flex";
         if (newFileBtn) newFileBtn.style.display = "none";
-        if (currentFileHeader) currentFileHeader.textContent = "Miwy AI";
+        if (currentFileHeader) currentFileHeader.textContent = "📁 Gestor de Carpetas";
+        renderFolderManager(currentFolderDirectory);
     } else if(tab === "console"){
         if (consoleBtn) consoleBtn.classList.add("active");
         if (consoleView) consoleView.style.display = "flex";
@@ -5555,6 +5561,167 @@ function switchMainTab(tab){
         const badge = document.getElementById("consoleBadge");
         if (badge) badge.style.display = "none";
     }
+}
+
+function renderFolderManager(dirPath = "/"){
+    currentFolderDirectory = dirPath;
+    const project = getCurrentProject();
+    if(!project) return;
+    if(!project.files) project.files = {};
+    if(!project.folders) project.folders = [];
+
+    const breadcrumb = document.getElementById("folderBreadcrumb");
+    const grid = document.getElementById("folderGrid");
+    if(!grid) return;
+
+    if(breadcrumb){
+        const parts = dirPath.split("/").filter(Boolean);
+        let accumulated = "/";
+        let html = `<span style="color:var(--orange); cursor:pointer; font-weight:bold;" onclick="renderFolderManager('/')">📁 Raíz</span>`;
+        parts.forEach((part, idx) => {
+            accumulated += part + "/";
+            const target = accumulated;
+            html += ` <span style="color:#627382;">/</span> <span style="color:#cbd5e1; cursor:pointer;" onclick="renderFolderManager('${target}')">${escapeHTML(part)}</span>`;
+        });
+        breadcrumb.innerHTML = html;
+    }
+
+    grid.innerHTML = "";
+
+    // Render Subfolders
+    const prefix = dirPath === "/" ? "" : dirPath.replace(/^\//, "");
+    const directFolders = new Set();
+
+    project.folders.forEach(fPath => {
+        if(fPath.startsWith(prefix) && fPath !== prefix){
+            const relative = fPath.slice(prefix.length);
+            const firstPart = relative.split("/")[0];
+            if(firstPart) directFolders.add(firstPart);
+        }
+    });
+
+    directFolders.forEach(folderName => {
+        const item = document.createElement("div");
+        item.style.cssText = "background:#182028; border:1px solid #2b3a48; border-radius:8px; padding:10px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; transition:all 0.2s;";
+        item.onmouseover = () => item.style.borderColor = "var(--orange)";
+        item.onmouseout = () => item.style.borderColor = "#2b3a48";
+        item.onclick = () => renderFolderManager((dirPath === "/" ? "" : dirPath) + folderName + "/");
+
+        item.innerHTML = `
+            <div style="font-size:28px;">📁</div>
+            <div style="font-size:11px; color:#edf2f7; font-weight:600; text-align:center; word-break:break-all;">${escapeHTML(folderName)}</div>
+        `;
+        grid.appendChild(item);
+    });
+
+    // Render Files / Assets in current folder
+    Object.keys(project.files).forEach(filename => {
+        let isMatch = false;
+        let displayName = filename;
+
+        if(dirPath === "/"){
+            if(!filename.includes("/")) isMatch = true;
+        } else {
+            const rel = dirPath.replace(/^\//, "");
+            if(filename.startsWith(rel)){
+                const rest = filename.slice(rel.length);
+                if(!rest.includes("/")){
+                    isMatch = true;
+                    displayName = rest;
+                }
+            }
+        }
+
+        if(isMatch){
+            const content = project.files[filename];
+            const isImage = content && typeof content === "string" && content.startsWith("data:image");
+            const item = document.createElement("div");
+            item.style.cssText = "background:#151d26; border:1px solid #24323e; border-radius:8px; padding:8px; display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; cursor:pointer; transition:all 0.2s;";
+            item.onmouseover = () => item.style.borderColor = "#384d5f";
+            item.onmouseout = () => item.style.borderColor = "#24323e";
+            item.onclick = () => {
+                selectFile(filename);
+                switchMainTab("code");
+            };
+
+            const previewIcon = isImage
+                ? `<img src="${content}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #334155;">`
+                : `<div style="font-size:24px;">📄</div>`;
+
+            item.innerHTML = `
+                ${previewIcon}
+                <div style="font-size:10px; color:#cbd5e1; font-weight:500; text-align:center; word-break:break-all; max-width:100%; line-height:1.2;">${escapeHTML(displayName)}</div>
+            `;
+            grid.appendChild(item);
+        }
+    });
+
+    if(grid.children.length === 0){
+        grid.innerHTML = `<div style="grid-column: 1 / -1; color:#627382; font-style:italic; font-size:11px; text-align:center; padding:30px;">Carpeta vacía. Haz clic en <strong>+ Subir Archivo</strong> o <strong>+ Carpeta</strong>.</div>`;
+    }
+}
+
+function createNewFolderPrompt(){
+    const folderName = prompt("Nombre de la nueva carpeta:");
+    if(!folderName || !folderName.trim()) return;
+    const cleanName = folderName.trim().replace(/[^a-zA-Z0-9_ -]/g, "");
+    if(!cleanName) return;
+
+    const project = getCurrentProject();
+    if(!project) return;
+    if(!project.folders) project.folders = [];
+
+    const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
+    const fullFolderPath = prefix + cleanName + "/";
+
+    if(!project.folders.includes(fullFolderPath)){
+        project.folders.push(fullFolderPath);
+        saveProjects();
+        renderFolderManager(currentFolderDirectory);
+        showTopNotification(`📁 Carpeta "${cleanName}" creada`, null, 1800);
+    }
+}
+
+function triggerAssetUpload(){
+    const input = document.getElementById("folderAssetInput");
+    if(input) input.click();
+}
+
+function handleAssetUpload(event){
+    const files = Array.from(event.target.files || []);
+    if(files.length === 0) return;
+
+    const project = getCurrentProject();
+    if(!project) return;
+    if(!project.files) project.files = {};
+
+    const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
+
+    let loadedCount = 0;
+    files.forEach(file => {
+        const reader = new FileReader();
+        const fullFilePath = prefix + file.name;
+
+        reader.onload = (e) => {
+            project.files[fullFilePath] = e.target.result;
+            loadedCount++;
+            if(loadedCount === files.length){
+                saveProjects();
+                renderFiles();
+                renderFolderManager(currentFolderDirectory);
+                updatePreview();
+                showTopNotification(`✅ ${files.length} archivo(s) subido(s) y conectado(s)`, null, 2000);
+            }
+        };
+
+        if(file.type.startsWith("image/")){
+            reader.readAsDataURL(file);
+        } else {
+            reader.readAsText(file);
+        }
+    });
+
+    event.target.value = "";
 }
 
 
@@ -7557,137 +7724,6 @@ if (connectRepoBtn) {
 </script>
 <script>
 
-/* =====================================================
-   PANEL AI LOCAL Y EDITADO AUTOMÁTICO
-===================================================== */
-const aiInput = document.getElementById("aiInput");
-const aiSend = document.getElementById("aiSend");
-const aiMessages = document.getElementById("aiMessages");
-
-function renderAiMessages(){
-    const project = getCurrentProject();
-    const messages = project && Array.isArray(project.messages) ? project.messages : [];
-
-    if (!aiMessages) return;
-
-    if (messages.length === 0) {
-        aiMessages.innerHTML = `
-            <div class="ai-message system">
-                ¡Hola! Soy Miwy. Puedes pedir cambiar el texto, crear un botón o guardar algo y lo dejaré listo en tu proyecto.
-            </div>
-        `;
-        return;
-    }
-
-    aiMessages.innerHTML = messages.map(msg => `
-        <div class="ai-message ${msg.role === "user" ? "user" : "system"}">
-            ${escapeHTML(msg.text)}
-        </div>
-    `).join("");
-}
-
-function addAiMessage(role, text){
-    const project = getCurrentProject();
-    if (!project) return;
-    if (!Array.isArray(project.messages)) project.messages = [];
-    project.messages.push({ role, text, time: new Date().toISOString() });
-    if (project.messages.length > 20) project.messages = project.messages.slice(-20);
-    saveProjects();
-    renderAiMessages();
-}
-
-function buildAiReply(prompt){
-    const lower = prompt.toLowerCase();
-
-    if (lower.includes("boton") || lower.includes("button")) {
-        return "He preparado una idea: puedes añadir un botón en tu archivo activo y dejarlo con estilo. Si quieres, lo dejo listo en el editor.";
-    }
-
-    if (lower.includes("guardar") || lower.includes("save")) {
-        return "Guardado localmente en tu navegador. Todo queda persistido automáticamente en este proyecto.";
-    }
-
-    if (lower.includes("texto") || lower.includes("titulo") || lower.includes("h1") || lower.includes("header")) {
-        return "Puedes cambiar el texto principal a una frase más clara y luego guardar. Esto se queda guardado automáticamente en el navegador.";
-    }
-
-    if (lower.includes("css") || lower.includes("color") || lower.includes("estilo")) {
-        return "Puedes ajustar colores, fondo y tipografía directa en el archivo activo. La vista previa se actualiza al guardar automáticamente.";
-    }
-
-    if (lower.includes("html") || lower.includes("estructura")) {
-        return "La base HTML puede estar en el archivo activo. Si quieres, puedo ayudarte a crear una sección o un bloque reutilizable.";
-    }
-
-    if (lower.includes("js") || lower.includes("evento") || lower.includes("click")) {
-        return "Puedes añadir un evento de click a un elemento y dejarlo guardado localmente. La app actualiza la vista previa al instante.";
-    }
-
-    return "He recibido tu pedido. Lo dejé como idea para el archivo activo y se guarda automáticamente en tu proyecto local.";
-}
-
-function applyAiSuggestion(prompt){
-    const project = getCurrentProject();
-    if (!project) return;
-
-    let targetName = currentFileName;
-    if (!targetName) {
-        const candidates = Object.keys(project.files || {});
-        targetName = candidates[0] || "index.html";
-    }
-
-    if (!project.files[targetName]) {
-        project.files[targetName] = "";
-    }
-
-    const selected = project.files[targetName] || "";
-    const snippet = `\n\n<!-- Miwy AI -->\n<section style="padding:16px; border-radius:12px; background:#111827; color:#fff; margin-top:16px;">\n  <h3 style="margin:0 0 8px;">Miwy</h3>\n  <p style="margin:0;">${escapeHTML(prompt)}</p>\n</section>\n`;
-    project.files[targetName] = selected + snippet;
-    currentFileName = targetName;
-    if (codeEditor && !codeEditor.disabled) {
-        codeEditor.value = project.files[targetName];
-    }
-    saveProjects();
-    updatePreview();
-    updateLineCounter();
-    renderFiles();
-    return targetName;
-}
-
-function handleAiSubmit(){
-    const value = aiInput ? aiInput.value.trim() : "";
-    if (!value) return;
-
-    addAiMessage("user", value);
-    aiInput.value = "";
-
-    const response = buildAiReply(value);
-    addAiMessage("system", response);
-
-    if (value.toLowerCase().includes("guardar") || value.toLowerCase().includes("boton") || value.toLowerCase().includes("html") || value.toLowerCase().includes("css") || value.toLowerCase().includes("js") || value.toLowerCase().includes("texto")) {
-        applyAiSuggestion(value);
-    }
-}
-
-if (aiInput) {
-    aiInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-            event.preventDefault();
-            handleAiSubmit();
-        }
-    });
-}
-
-if (aiSend) {
-    aiSend.addEventListener("click", (event) => {
-        event.preventDefault();
-        handleAiSubmit();
-    });
-}
-
-if (typeof renderAiMessages === "function") {
-    renderAiMessages();
-}
 
 /* =====================================================
    RESIZER CODE / PREVIEW
