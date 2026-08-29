@@ -1,0 +1,26 @@
+{
+  "name": "hjp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "controles.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raycastillodelacruz2006-lab/Hjp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/raycastillodelacruz2006-lab/Hjp/issues"
+  },
+  "homepage": "https://github.com/raycastillodelacruz2006-lab/Hjp#readme",
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.42.0",
+    "eslint": "^9.35.0",
+    "playwright": "^1.54.2"
+  }
+}
