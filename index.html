@@ -1309,59 +1309,75 @@ button:not(.miwy-tb-btn):not(.settings-button):not(.new-file-button):not(.miwy-c
 
 .settings-options{
     padding:8px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
 }
 
 .settings-option{
     width:100%;
+    height:48px;
+    box-sizing:border-box;
 
     display:flex;
     align-items:center;
     justify-content:space-between;
 
-    padding:12px;
+    padding:0 12px;
 
-    background:transparent;
-    color:#bbb;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.1) 100%);
+    color:#cbd5e1;
 
+    border:1px solid rgba(255,255,255,0.05);
     border-radius:8px;
 
     text-align:left;
+    transition:all 0.2s ease;
 }
 
 .settings-option:hover{
-    background:#191919;
+    background:linear-gradient(180deg, #222933 0%, #161c24 100%);
+    border-color:rgba(255,122,26,0.3);
     color:white;
 }
 
 .settings-option-left{
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:12px;
+    flex:1;
+    min-width:0;
 }
 
 .option-icon{
-    width:28px;
-    height:28px;
+    width:30px;
+    height:30px;
+    flex:0 0 30px;
 
     display:flex;
     align-items:center;
     justify-content:center;
 
-    background:#181818;
-
+    background:#161f28;
+    border:1px solid #263442;
     border-radius:7px;
+    color:var(--orange);
 }
 
 .settings-option strong{
     display:block;
     font-size:12px;
-    color:#ddd;
+    font-weight:600;
+    color:#f1f5f9;
+    line-height:1.2;
 }
 
 .settings-option small{
     display:block;
-    color:#666;
+    color:#8a99ad;
     font-size:10px;
+    line-height:1.2;
+    margin-top:2px;
 }
 
 .settings-section{
@@ -2500,6 +2516,47 @@ function updateDockSettingsUI() {
     }
 }
 
+let savedDockPosition = null;
+
+function restoreDockPosition() {
+    const parentDock = document.getElementById("parentVisualDock");
+    if (!parentDock) return;
+
+    if (!savedDockPosition) {
+        try {
+            const raw = localStorage.getItem("miwy_dock_pos");
+            if (raw) savedDockPosition = JSON.parse(raw);
+        } catch (err) {
+            console.warn("Error leyendo dock pos:", err);
+        }
+    }
+
+    parentDock.style.transform = "none";
+    parentDock.style.bottom = "auto";
+    parentDock.style.right = "auto";
+
+    const dockWidth = parentDock.offsetWidth || 300;
+    const dockHeight = parentDock.offsetHeight || 50;
+
+    const maxX = Math.max(10, window.innerWidth - dockWidth - 10);
+    const maxY = Math.max(10, window.innerHeight - dockHeight - 10);
+
+    let posX = savedDockPosition ? savedDockPosition.x : Math.max(10, Math.floor((window.innerWidth - dockWidth) / 2));
+    let posY = savedDockPosition ? savedDockPosition.y : Math.max(10, window.innerHeight - dockHeight - 30);
+
+    // Constrain strictly within visible viewport bounds
+    posX = Math.max(10, Math.min(posX, maxX));
+    posY = Math.max(10, Math.min(posY, maxY));
+
+    parentDock.style.left = posX + "px";
+    parentDock.style.top = posY + "px";
+
+    savedDockPosition = { x: posX, y: posY };
+    try {
+        localStorage.setItem("miwy_dock_pos", JSON.stringify(savedDockPosition));
+    } catch (e) { /* ignore */ }
+}
+
 function toggleVisualEdit() {
     isVisualEditing = !isVisualEditing;
     const btn = document.getElementById("visualEditBtn");
@@ -2509,7 +2566,12 @@ function toggleVisualEdit() {
 
     const parentDock = document.getElementById("parentVisualDock");
     if (parentDock) {
-        parentDock.style.display = isVisualEditing ? "flex" : "none";
+        if (isVisualEditing) {
+            parentDock.style.display = "flex";
+            restoreDockPosition();
+        } else {
+            parentDock.style.display = "none";
+        }
     }
 
     if (typeof showShortcutToast === "function") {
@@ -2890,7 +2952,7 @@ window.onunhandledrejection = function(event) {
             var val = evt.data.val;
 
             if (!selectedTarget && !act.startsWith('add-')) {
-                alert('Selecciona un elemento de la vista primero.');
+                showTopNotification('⚠️ Selecciona un elemento de la vista primero.');
                 return;
             }
 
@@ -2982,32 +3044,72 @@ window.onunhandledrejection = function(event) {
                 sendCleanHtml();
             } else if (act === 'edit-attr' && selectedTarget) {
                 if (selectedTarget.tagName === 'IMG') {
-                    var newUrl = prompt('URL de la imagen (src):', selectedTarget.getAttribute('src') || '');
-                    if (newUrl !== null) {
-                        selectedTarget.src = newUrl;
-                        sendCleanHtml();
-                    }
-                } else if (selectedTarget.tagName === 'A') {
-                    var newHref = prompt('Enlace de destino (href):', selectedTarget.getAttribute('href') || '#');
-                    if (newHref !== null) {
-                        selectedTarget.setAttribute('href', newHref);
-                        sendCleanHtml();
-                    }
-                } else if (selectedTarget.tagName === 'INPUT') {
-                    var newPlace = prompt('Texto de relleno (placeholder):', selectedTarget.getAttribute('placeholder') || '');
-                    if (newPlace !== null) {
-                        selectedTarget.setAttribute('placeholder', newPlace);
-                        sendCleanHtml();
-                    }
-                } else {
-                    var attrName = prompt('Nombre del atributo a editar (ej. href, id, class, src):', 'id');
-                    if (attrName) {
-                        var attrVal = prompt('Valor para "' + attrName + '":', selectedTarget.getAttribute(attrName) || '');
-                        if (attrVal !== null) {
-                            selectedTarget.setAttribute(attrName, attrVal);
-                            sendCleanHtml();
+                    window.parent.showCustomDialog({
+                        title: "Atributo Imagen",
+                        description: "Ingresa la URL de la imagen (src):",
+                        showInput: true,
+                        inputValue: selectedTarget.getAttribute('src') || '',
+                        confirmText: "Guardar",
+                        onConfirm: function(newUrl) {
+                            if (newUrl !== null) {
+                                selectedTarget.src = newUrl;
+                                sendCleanHtml();
+                            }
                         }
-                    }
+                    });
+                } else if (selectedTarget.tagName === 'A') {
+                    window.parent.showCustomDialog({
+                        title: "Enlace de Destino",
+                        description: "Ingresa la URL del enlace (href):",
+                        showInput: true,
+                        inputValue: selectedTarget.getAttribute('href') || '#',
+                        confirmText: "Guardar",
+                        onConfirm: function(newHref) {
+                            if (newHref !== null) {
+                                selectedTarget.setAttribute('href', newHref);
+                                sendCleanHtml();
+                            }
+                        }
+                    });
+                } else if (selectedTarget.tagName === 'INPUT') {
+                    window.parent.showCustomDialog({
+                        title: "Texto de Relleno",
+                        description: "Ingresa el placeholder del campo:",
+                        showInput: true,
+                        inputValue: selectedTarget.getAttribute('placeholder') || '',
+                        confirmText: "Guardar",
+                        onConfirm: function(newPlace) {
+                            if (newPlace !== null) {
+                                selectedTarget.setAttribute('placeholder', newPlace);
+                                sendCleanHtml();
+                            }
+                        }
+                    });
+                } else {
+                    window.parent.showCustomDialog({
+                        title: "Editar Atributo",
+                        description: "Nombre del atributo (ej: id, class, href):",
+                        showInput: true,
+                        inputValue: "id",
+                        confirmText: "Siguiente",
+                        onConfirm: function(attrName) {
+                            if (attrName) {
+                                window.parent.showCustomDialog({
+                                    title: "Valor del Atributo",
+                                    description: "Ingresa el valor para el atributo " + attrName + ":",
+                                    showInput: true,
+                                    inputValue: selectedTarget.getAttribute(attrName) || '',
+                                    confirmText: "Guardar",
+                                    onConfirm: function(attrVal) {
+                                        if (attrVal !== null) {
+                                            selectedTarget.setAttribute(attrName, attrVal);
+                                            sendCleanHtml();
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
                 }
             } else if (act === 'up' && selectedTarget) {
                 var prev = selectedTarget.previousElementSibling;
@@ -3298,12 +3400,36 @@ document.addEventListener("DOMContentLoaded", function() {
 
         document.addEventListener("mousemove", (e) => {
             if (!draggingParentDock) return;
-            parentDock.style.left = (e.clientX - pOffsetX) + "px";
-            parentDock.style.top = (e.clientY - pOffsetY) + "px";
+            const dockWidth = parentDock.offsetWidth || 300;
+            const dockHeight = parentDock.offsetHeight || 50;
+
+            const maxX = Math.max(10, window.innerWidth - dockWidth - 10);
+            const maxY = Math.max(10, window.innerHeight - dockHeight - 10);
+
+            let rawX = e.clientX - pOffsetX;
+            let rawY = e.clientY - pOffsetY;
+
+            // Constrain within screen bounds
+            let clampedX = Math.max(10, Math.min(rawX, maxX));
+            let clampedY = Math.max(10, Math.min(rawY, maxY));
+
+            parentDock.style.left = clampedX + "px";
+            parentDock.style.top = clampedY + "px";
+
+            savedDockPosition = { x: clampedX, y: clampedY };
+            try {
+                localStorage.setItem("miwy_dock_pos", JSON.stringify(savedDockPosition));
+            } catch (err) { /* ignore */ }
         });
 
         document.addEventListener("mouseup", () => {
             draggingParentDock = false;
+        });
+
+        window.addEventListener("resize", () => {
+            if (parentDock && parentDock.style.display !== "none") {
+                restoreDockPosition();
+            }
         });
 
         parentDock.addEventListener("click", (e) => {
@@ -4310,12 +4436,6 @@ function replaceAllMatches() {
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h3.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A.5.5 0 0 0 8.914 3H13a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.5v-10zM3 2a.5.5 0 0 0-.5.5v10a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H8.914a1.5 1.5 0 0 1-1.06-.44L6.439 1.646A.5.5 0 0 0 6.086 1.5H3z"/></svg>Carpetas
                 </button>
 
-                <button
-                    id="tabConsoleBtn"
-                    class="main-tab-btn"
-                    onclick="switchMainTab('console')">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1zM2 1h12a2 2 0 012 2v10a2 2 0 01-2 2H2a2 2 0 01-2-2V3a2 2 0 012-2zm2.15 3.15L7.3 7.3a.5.5 0 010 .7L4.15 11.15l-.7-.7L6.24 7.65 3.45 4.85l.7-.7zM8 11h4v1H8v-1z"/></svg>Consola <span id="consoleBadge" style="background:var(--orange); color:#000; border-radius:10px; padding:1px 6px; font-size:9px; font-weight:bold; display:none;">0</span>
-                </button>
             </div>
 
             <button
@@ -4404,48 +4524,33 @@ function replaceAllMatches() {
         </div>
     </div>
 
-    <!-- TAB CONTENT: CARPETAS Y ARCHIVOS (WINDOWS STYLE FILE EXPLORER) -->
-    <div id="folderView" class="folder-tab-container" style="display:none; flex:1; min-height:0; flex-direction:column; background:#10151c; padding:12px;">
+    <!-- TAB CONTENT: RECURSOS Y ARCHIVOS (WINDOWS STYLE FILE EXPLORER) -->
+    <div id="folderView" class="folder-tab-container" style="display:none; flex:1; min-height:0; flex-direction:column; background:#10151c; padding:12px; position:relative;" id="resourceDropZone">
         <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:1px solid #25323f; margin-bottom:10px;">
             <div style="font-size:12px; font-weight:bold; color:#edf2f7; display:flex; align-items:center; gap:8px;">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--orange)"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h3.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A.5.5 0 0 0 8.914 3H13a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.5v-10z"/></svg>
-                <span>Gestor de Carpetas y Recursos</span>
+                <span>Recursos</span>
             </div>
             <div style="display:flex; gap:6px;">
                 <button onclick="createNewFolderPrompt()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nueva Carpeta">+ 📁 Carpeta</button>
                 <button onclick="triggerAssetUpload()" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">+ 🖼️ Subir Archivo</button>
-                <input type="file" id="folderAssetInput" accept="image/*,text/*,application/json" multiple style="display:none;" onchange="handleAssetUpload(event)">
+                <input type="file" id="folderAssetInput" accept="image/*,text/*,application/json,video/*,audio/*" multiple style="display:none;" onchange="handleAssetUpload(event)">
             </div>
         </div>
 
         <div id="folderBreadcrumb" style="font-size:11px; color:#91a0ad; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-            <span style="color:var(--orange); cursor:pointer;" onclick="renderFolderManager('/')">📁 Raíz</span>
+            <span style="color:var(--orange); cursor:pointer;" onclick="renderFolderManager('/')">📁 Inicio</span>
         </div>
 
-        <div id="folderGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap:10px; align-content:start; padding:4px;">
+        <div id="folderGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap:10px; align-content:start; padding:4px; border:2px dashed transparent; border-radius:8px; transition:all 0.2s;">
             <!-- Folder & File Items Rendered Dynamically -->
         </div>
 
         <div style="font-size:10px; color:#627382; padding-top:8px; border-top:1px solid #1a232c; text-align:center;">
-            ⚡ Los archivos e imágenes subidos en estas carpetas se conectan automáticamente con tu código app/web.
+            ⚡ Arrastra y suelta archivos aquí para organizarlos automáticamente por tipo en tu proyecto.
         </div>
     </div>
 
-    <!-- TAB CONTENT: CONSOLE / ERRORES -->
-    <div id="consoleView" class="console-tab-container" style="display:none; flex:1; min-height:0; flex-direction:column; background:#090909; padding:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:8px;">
-            <div style="font-size:12px; font-weight:bold; color:#ddd; display:flex; align-items:center; gap:8px;">
-                <span>📟 Consola & Detección de Errores</span>
-                <span id="consoleLogCount" style="font-size:10px; color:#888;">(0 registros)</span>
-            </div>
-            <div style="display:flex; gap:6px;">
-                <button id="clearConsoleBtn" onclick="clearConsoleLogs()" style="background:#1c1c1c; color:#aaa; border:1px solid #333; border-radius:6px; padding:3px 8px; font-size:10px; cursor:pointer;" title="Limpiar registros de consola">🗑 Limpiar</button>
-            </div>
-        </div>
-        <div id="consoleLogs" style="flex:1; overflow-y:auto; font-family:Consolas, monospace; font-size:11px; display:flex; flex-direction:column; gap:4px; padding:4px;">
-            <div style="color:#666; font-style:italic; font-size:11px; text-align:center; margin-top:20px;">Sin registros en consola. Los errores y logs de tu aplicación aparecerán aquí en tiempo real.</div>
-        </div>
-    </div>
 
     <!-- TAB CONTENT: PROYECTOS -->
     <div id="projectsView" class="projects-tab-container" style="display:none;">
@@ -5526,21 +5631,17 @@ function switchMainTab(tab){
 
     const codeBtn = document.getElementById("tabCodeBtn");
     const folderBtn = document.getElementById("tabFolderBtn");
-    const consoleBtn = document.getElementById("tabConsoleBtn");
 
     const codeView = document.getElementById("codeView");
     const folderView = document.getElementById("folderView");
-    const consoleView = document.getElementById("consoleView");
 
     const newFileBtn = document.getElementById("newFileButton");
 
     if (codeBtn) codeBtn.classList.remove("active");
     if (folderBtn) folderBtn.classList.remove("active");
-    if (consoleBtn) consoleBtn.classList.remove("active");
 
     if (codeView) codeView.style.display = "none";
     if (folderView) folderView.style.display = "none";
-    if (consoleView) consoleView.style.display = "none";
 
     if(tab === "code"){
         if (codeBtn) codeBtn.classList.add("active");
@@ -5551,15 +5652,8 @@ function switchMainTab(tab){
         if (folderBtn) folderBtn.classList.add("active");
         if (folderView) folderView.style.display = "flex";
         if (newFileBtn) newFileBtn.style.display = "none";
-        if (currentFileHeader) currentFileHeader.textContent = "📁 Gestor de Carpetas";
+        if (currentFileHeader) currentFileHeader.textContent = "📁 Recursos";
         renderFolderManager(currentFolderDirectory);
-    } else if(tab === "console"){
-        if (consoleBtn) consoleBtn.classList.add("active");
-        if (consoleView) consoleView.style.display = "flex";
-        if (newFileBtn) newFileBtn.style.display = "none";
-        if (currentFileHeader) currentFileHeader.textContent = "📟 Consola de Errores";
-        const badge = document.getElementById("consoleBadge");
-        if (badge) badge.style.display = "none";
     }
 }
 
@@ -5577,7 +5671,7 @@ function renderFolderManager(dirPath = "/"){
     if(breadcrumb){
         const parts = dirPath.split("/").filter(Boolean);
         let accumulated = "/";
-        let html = `<span style="color:var(--orange); cursor:pointer; font-weight:bold;" onclick="renderFolderManager('/')">📁 Raíz</span>`;
+        let html = `<span style="color:var(--orange); cursor:pointer; font-weight:bold;" onclick="renderFolderManager('/')">📁 Inicio</span>`;
         parts.forEach((part, idx) => {
             accumulated += part + "/";
             const target = accumulated;
@@ -5662,24 +5756,32 @@ function renderFolderManager(dirPath = "/"){
 }
 
 function createNewFolderPrompt(){
-    const folderName = prompt("Nombre de la nueva carpeta:");
-    if(!folderName || !folderName.trim()) return;
-    const cleanName = folderName.trim().replace(/[^a-zA-Z0-9_ -]/g, "");
-    if(!cleanName) return;
+    showCustomDialog({
+        title: "Nueva Carpeta",
+        description: "Ingresa el nombre de la carpeta para organizar tus recursos:",
+        showInput: true,
+        inputValue: "imagenes",
+        confirmText: "Crear",
+        onConfirm: (folderName) => {
+            if(!folderName || !folderName.trim()) return;
+            const cleanName = folderName.trim().replace(/[^a-zA-Z0-9_ -]/g, "");
+            if(!cleanName) return;
 
-    const project = getCurrentProject();
-    if(!project) return;
-    if(!project.folders) project.folders = [];
+            const project = getCurrentProject();
+            if(!project) return;
+            if(!project.folders) project.folders = [];
 
-    const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
-    const fullFolderPath = prefix + cleanName + "/";
+            const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
+            const fullFolderPath = prefix + cleanName + "/";
 
-    if(!project.folders.includes(fullFolderPath)){
-        project.folders.push(fullFolderPath);
-        saveProjects();
-        renderFolderManager(currentFolderDirectory);
-        showTopNotification(`📁 Carpeta "${cleanName}" creada`, null, 1800);
-    }
+            if(!project.folders.includes(fullFolderPath)){
+                project.folders.push(fullFolderPath);
+                saveProjects();
+                renderFolderManager(currentFolderDirectory);
+                showTopNotification(`📁 Carpeta "${cleanName}" creada`, null, 1800);
+            }
+        }
+    });
 }
 
 function triggerAssetUpload(){
@@ -5690,17 +5792,39 @@ function triggerAssetUpload(){
 function handleAssetUpload(event){
     const files = Array.from(event.target.files || []);
     if(files.length === 0) return;
+    processUploadedFiles(files);
+    event.target.value = "";
+}
 
+function processUploadedFiles(files){
     const project = getCurrentProject();
     if(!project) return;
     if(!project.files) project.files = {};
+    if(!project.folders) project.folders = [];
 
     const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
 
     let loadedCount = 0;
     files.forEach(file => {
         const reader = new FileReader();
-        const fullFilePath = prefix + file.name;
+        let targetFolder = prefix;
+
+        // Auto-organize by file type if uploading at root
+        if (!prefix) {
+            if (file.type.startsWith("image/")) {
+                targetFolder = "images/";
+            } else if (file.name.endsWith(".css")) {
+                targetFolder = "styles/";
+            } else if (file.name.endsWith(".js")) {
+                targetFolder = "scripts/";
+            }
+        }
+
+        if (targetFolder && !project.folders.includes(targetFolder)) {
+            project.folders.push(targetFolder);
+        }
+
+        const fullFilePath = targetFolder + file.name;
 
         reader.onload = (e) => {
             project.files[fullFilePath] = e.target.result;
@@ -5708,9 +5832,9 @@ function handleAssetUpload(event){
             if(loadedCount === files.length){
                 saveProjects();
                 renderFiles();
-                renderFolderManager(currentFolderDirectory);
+                renderFolderManager(currentFolderDirectory || "/");
                 updatePreview();
-                showTopNotification(`✅ ${files.length} archivo(s) subido(s) y conectado(s)`, null, 2000);
+                showTopNotification(`✅ ${files.length} recurso(s) importado(s) y organizado(s)`, null, 2000);
             }
         };
 
@@ -5720,107 +5844,30 @@ function handleAssetUpload(event){
             reader.readAsText(file);
         }
     });
-
-    event.target.value = "";
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const workspace = document.getElementById("workspace");
+    if (!workspace) return;
+
+    window.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    });
+
+    window.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            processUploadedFiles(Array.from(e.dataTransfer.files));
+        }
+    });
+});
 
 
 /* =====================================================
-   CREAR PROYECTO INICIAL
+   GALERIA VACÍA POR DEFECTO
 ===================================================== */
-
-if(projects.length === 0){
-
-    const defaultHtml = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mi Aplicación</title>
-<style>
-    body {
-        margin: 0;
-        padding: 0;
-        font-family: system-ui, -apple-system, sans-serif;
-        background: #0f172a;
-        color: #f8fafc;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-    }
-    .container {
-        text-align: center;
-        padding: 40px;
-        background: #1e293b;
-        border-radius: 16px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-        max-width: 400px;
-        border: 1px solid #334155;
-    }
-    h1 { color: #38bdf8; font-size: 24px; margin-bottom: 8px; }
-    p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
-    .btn {
-        background: #38bdf8;
-        color: #0f172a;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .btn:hover { background: #7dd3fc; }
-</style>
-</head>
-<body>
-    <div class="container">
-        <h1>✨ Tu app o web se reflejará aquí</h1>
-        <p>Modifica este archivo para empezar a construir tu aplicación en tiempo real.</p>
-    </div>
-</body>
-</html>`;
-
-    const project = {
-
-        id:Date.now().toString(),
-
-        name:"Nuevo proyecto",
-
-        files:{"index.html": defaultHtml},
-
-        versions:[],
-
-        version:0,
-
-        messages:[],
-
-        repository:null,
-
-        edited:false
-
-    };
-
-    projects.push(project);
-
-    currentProjectId =
-        project.id;
-
-    saveProjects();
-}
-
-
-if(
-    !projects.some(
-        p => p.id === currentProjectId
-    )
-){
-
-    currentProjectId =
-        projects[0].id;
-
-}
-
 
 projects.forEach(project => {
 
@@ -6056,7 +6103,7 @@ function createFile(){
     }
 
     if(!name.includes(".")){
-        alert("El archivo debe tener una extensión o nombre de carpeta/archivo, por ejemplo images/foto.png o script.js.");
+        showCustomDialog({ title: "Crear Archivo", description: "El archivo debe tener una extensión válida, por ejemplo 'images/foto.png' o 'script.js'." });
         return;
     }
 
@@ -6064,7 +6111,7 @@ function createFile(){
     if(!project) return;
 
     if(Object.prototype.hasOwnProperty.call(project.files, name)){
-        alert("Ese archivo o ruta ya existe.");
+        showCustomDialog({ title: "Crear Archivo", description: "Ese archivo o ruta ya existe en el proyecto." });
         return;
     }
 
@@ -6772,24 +6819,8 @@ function saveProjectDialog(){
 ===================================================== */
 
 function deleteProject(id){
-
-    if(projects.length === 1){
-        showCustomDialog({
-            title: "Acción no permitida",
-            description: "No puedes eliminar el último proyecto.",
-            confirmText: "Aceptar",
-            cancelText: null
-        });
-        return;
-    }
-
-    const project =
-        projects.find(
-            p => p.id === id
-        );
-
-    if(!project)
-        return;
+    const project = projects.find(p => p.id === id);
+    if(!project) return;
 
     showCustomDialog({
         title: "Eliminar proyecto",
@@ -6797,24 +6828,19 @@ function deleteProject(id){
         confirmText: "Eliminar",
         isDanger: true,
         onConfirm: () => {
-            projects =
-                projects.filter(
-                    p => p.id !== id
-                );
+            projects = projects.filter(p => p.id !== id);
 
-            if(
-                currentProjectId === id
-            ){
-
-                currentProjectId =
-                    projects[0].id;
-
+            if(currentProjectId === id){
+                currentProjectId = projects.length > 0 ? projects[0].id : null;
                 currentFileName = null;
-
             }
 
             saveProjects();
-            loadProject();
+            if (projects.length > 0) {
+                loadProject();
+            } else {
+                exitToGallery();
+            }
             renderProjects();
         }
     });
@@ -7551,7 +7577,7 @@ if (importProjectInput) {
                     importedFiles[file.name] = text;
                 }
             } catch (err) {
-                alert("Error al importar archivo JSON: " + err.message);
+                showCustomDialog({ title: "Error de Importación", description: "Error al importar archivo JSON: " + err.message });
                 importProjectInput.value = "";
                 return;
             }
@@ -7577,7 +7603,7 @@ if (importProjectInput) {
 
                 await Promise.all(filePromises);
             } catch (err) {
-                alert("Error al descomprimir el archivo ZIP: " + err.message);
+                showCustomDialog({ title: "Error de Importación", description: "Error al descomprimir el archivo ZIP: " + err.message });
                 importProjectInput.value = "";
                 return;
             }
@@ -7665,9 +7691,9 @@ document.querySelectorAll("[data-back]").forEach(button => {
    EXPORTAR PROYECTO COMO ZIP
 ===================================================== */
 function exportProjectAsZip(id) {
-    const project = projects.find(p => p.id === id) || getCurrentProject();
+    const project = (Array.isArray(projects) ? projects.find(p => p.id === id) : null) || getCurrentProject();
     if (!project) {
-        alert("No hay proyecto activo para exportar.");
+        showCustomDialog({ title: "Exportar Proyecto", description: "No hay proyecto activo para exportar." });
         return;
     }
 
@@ -7676,13 +7702,30 @@ function exportProjectAsZip(id) {
     const fileNames = Object.keys(files);
 
     if (fileNames.length === 0) {
-        alert("El proyecto no tiene archivos para exportar.");
+        showCustomDialog({ title: "Exportar Proyecto", description: "El proyecto no tiene archivos para exportar." });
         return;
     }
 
     fileNames.forEach(name => {
-        zip.file(name, files[name] || "");
+        const content = files[name] || "";
+        if (typeof content === "string" && content.startsWith("data:")) {
+            const base64Index = content.indexOf(";base64,");
+            if (base64Index !== -1) {
+                const b64Data = content.slice(base64Index + 8);
+                zip.file(name, b64Data, { base64: true });
+            } else {
+                zip.file(name, content);
+            }
+        } else {
+            zip.file(name, content);
+        }
     });
+
+    if (Array.isArray(project.folders)) {
+        project.folders.forEach(fPath => {
+            zip.folder(fPath);
+        });
+    }
 
     zip.generateAsync({ type: "blob" }).then(function(content) {
         const link = document.createElement("a");
@@ -7692,7 +7735,7 @@ function exportProjectAsZip(id) {
         link.click();
         document.body.removeChild(link);
     }).catch(function(err) {
-        alert("Error al generar el ZIP: " + err.message);
+        showCustomDialog({ title: "Error Exportación", description: "Error al generar el ZIP: " + err.message });
     });
 }
 
@@ -7717,7 +7760,7 @@ const connectRepoBtn = document.getElementById("connectRepository");
 if (connectRepoBtn) {
     connectRepoBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        alert("Se integrará pronto");
+        showCustomDialog({ title: "Información", description: "Se integrará pronto" });
     });
 }
 
@@ -7868,10 +7911,10 @@ if (copyCodeBtn) {
             navigator.clipboard.writeText(codeEditor.value).then(() => {
                 showShortcutToast("📋 Copiado", "Código copiado al portapapeles");
             }).catch(err => {
-                alert("Error al copiar: " + err.message);
+                showCustomDialog({ title: "Copiar Código", description: "Error al copiar: " + err.message });
             });
         } else {
-            alert("No hay código para copiar.");
+            showCustomDialog({ title: "Copiar Código", description: "No hay código para copiar." });
         }
     });
 }
