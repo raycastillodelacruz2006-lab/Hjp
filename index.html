@@ -162,19 +162,31 @@ button{border:0;cursor:pointer}
     display:flex;
     align-items:center;
     justify-content:center;
-    background:transparent;
-    color:#aaa;
+    background: linear-gradient(180deg, #252b33 0%, #171d24 100%);
+    color:#cbd5e1;
     border-radius:9px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .logo-button:hover,
 .settings-button:hover{
-    background:#171717;
-    color:white;
+    background: linear-gradient(180deg, #2f3742 0%, #1e2630 100%);
+    color:#ffffff;
+    border-color: rgba(255, 122, 26, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 8px rgba(255, 122, 26, 0.25);
+    transform: translateY(-1px);
+}
+
+.logo-button:active,
+.settings-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
 .settings-button{
-    font-size:19px;
+    font-size:18px;
 }
 
 
@@ -263,46 +275,56 @@ button{border:0;cursor:pointer}
 .main-tab-btn{
     height:28px;
     padding:0 10px;
-    background:transparent;
-    color:#888;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+    color:#94a3b8;
     border-radius:6px;
     font-size:12px;
     font-weight:600;
     display:flex;
     align-items:center;
     gap:6px;
-    transition:all 0.2s;
-    border:1px solid transparent;
+    transition:all 0.2s ease;
+    border:1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .main-tab-btn:hover{
-    background:#181818;
-    color:#ddd;
+    background: linear-gradient(180deg, #262c35 0%, #1a2027 100%);
+    color:#f1f5f9;
+    border-color: rgba(255,255,255,0.12);
+    transform: translateY(-1px);
 }
 
 .main-tab-btn.active{
-    background:#1b120c;
+    background: linear-gradient(180deg, #2e1a0e 0%, #1d1007 100%);
     color:var(--orange);
-    border-color:#ff6a0035;
+    border-color: rgba(255, 122, 26, 0.35);
+    box-shadow: 0 2px 8px rgba(255, 106, 0, 0.2), inset 0 1px 0 rgba(255, 160, 80, 0.2);
 }
 
 .new-file-button{
-    width:25px;
-    height:25px;
+    width:26px;
+    height:26px;
 
     display:flex;
     align-items:center;
     justify-content:center;
 
-    background:transparent;
-    color:#777;
+    background: linear-gradient(180deg, #242a32 0%, #181d24 100%);
+    color:#94a3b8;
     border-radius:6px;
-    font-size:18px;
+    font-size:16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
 }
 
 .new-file-button:hover{
-    background:#1c1c1c;
+    background: linear-gradient(180deg, #2d3540 0%, #1e252f 100%);
     color:var(--orange);
+    border-color: rgba(255, 122, 26, 0.4);
+    box-shadow: 0 0 8px rgba(255, 106, 0, 0.3);
+    transform: translateY(-1px);
 }
 
 
@@ -683,28 +705,36 @@ button{border:0;cursor:pointer}
 
 .preview-button{
     height:27px;
-    padding:0 8px;
+    padding:0 10px;
 
     display:flex;
     align-items:center;
     justify-content:center;
 
-    background:transparent;
-    color:#666;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.1) 100%);
+    color:#94a3b8;
 
     border-radius:6px;
+    border: 1px solid rgba(255,255,255,0.06);
 
     font-size:12px;
+    font-weight:500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .preview-button:hover{
-    background:#1b1b1b;
-    color:white;
+    background: linear-gradient(180deg, #29303a 0%, #1c222a 100%);
+    color:#ffffff;
+    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-1px);
 }
 
 .preview-button.active{
     color:var(--orange);
-    background:#1b120c;
+    background: linear-gradient(180deg, #2a180d 0%, #190e07 100%);
+    border-color: rgba(255, 122, 26, 0.35);
+    box-shadow: 0 2px 8px rgba(255, 106, 0, 0.2), inset 0 1px 0 rgba(255, 160, 80, 0.2);
 }
 
 
@@ -2736,27 +2766,13 @@ button {
 }
 
 .miwy-tb-btn {
-    font-size: 0;
+    font-size: 14px;
+    line-height: 1;
 }
 
 .miwy-tb-btn::after {
-    content: "";
-    display: block;
-    width: 13px;
-    height: 13px;
-    border: 1.5px solid currentColor;
-    border-radius: 3px;
+    content: none !important;
 }
-
-.miwy-tb-btn[data-act="text"]::after { border-radius: 50%; }
-.miwy-tb-btn[data-act="bold"]::after { content: "B"; border: 0; font-size: 14px; font-weight: 800; }
-.miwy-tb-btn[data-act="font-plus"]::after { content: "A+"; border: 0; font-size: 10px; font-weight: 800; }
-.miwy-tb-btn[data-act="font-minus"]::after { content: "A-"; border: 0; font-size: 10px; font-weight: 800; }
-.miwy-tb-btn[data-act="add-title"]::after { content: "H1"; border: 0; font-size: 9px; font-weight: 800; }
-.miwy-tb-btn[data-act="align"]::after { content: "="; border: 0; font-size: 18px; font-weight: 800; }
-.miwy-tb-btn[data-act="up"]::after { content: "↑"; border: 0; font-size: 17px; }
-.miwy-tb-btn[data-act="down"]::after { content: "↓"; border: 0; font-size: 17px; }
-.miwy-tb-btn[data-act="del"]::after { content: ""; width: 9px; height: 11px; border-top: 0; }
 
 @media (max-width: 750px) {
     .topbar { gap: 8px; }
