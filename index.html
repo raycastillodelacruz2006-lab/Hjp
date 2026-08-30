@@ -155,7 +155,20 @@ button{border:0;cursor:pointer}
 .leg.r3{right:0;top:13px;transform:rotate(18deg)}
 .leg.r4{right:0;top:17px;transform:rotate(35deg)}
 
-.logo-button,
+.logo-button {
+    width:42px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: linear-gradient(180deg, #252b33 0%, #171d24 100%);
+    color:#cbd5e1;
+    border-radius:10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .settings-button{
     width:36px;
     height:36px;
@@ -1140,7 +1153,7 @@ button.iconized::before{ content:""; display:inline-block; vertical-align:-3px; 
 button.iconized.icon-save::before{ border:1.5px solid currentColor; border-radius:2px; }
 button.iconized.icon-import::before{ border:1.5px solid currentColor; border-radius:2px; clip-path:polygon(0 25%, 38% 25%, 50% 0, 100% 0, 100% 100%, 0 100%); }
 button.iconized.icon-export::before{ border:1.5px solid currentColor; border-radius:2px; clip-path:polygon(0 0, 100% 0, 100% 72%, 62% 72%, 50% 100%, 38% 72%, 0 72%); }
-button.iconized.icon-edit::before{ border:1.5px solid currentColor; border-radius:2px; transform:skew(-15deg); }
+button.iconized.icon-edit::before{ border:1.5px solid currentColor; border-radius:2px; transform:none; }
 button.iconized.icon-theme::before{ border:1.5px solid currentColor; border-radius:50%; box-shadow:5px -3px 0 -3px #101010, 5px -3px 0 -1.5px currentColor; }
 button.iconized.icon-close::before{ content:"x"; font-size:16px; line-height:13px; }
 button.iconized.icon-arrow::before{ content:">"; font-size:18px; line-height:13px; }
@@ -2587,10 +2600,28 @@ function toggleVisualEdit() {
 }
 
 /* =====================================================
-   PREVIEW / VISTA DE APLICACIÓN
+   PREVIEW / VISTA DE APLICACIÓN Y ESTADO DINÁMICO
 ===================================================== */
+function setAppStatusState(state, customText) {
+    const dot = document.getElementById("appStatusDot");
+    const text = document.getElementById("appStatusText");
+    if (!dot || !text) return;
+
+    if (state === "detecting") {
+        dot.style.color = "#ffbd2e"; // amarillo / naranja advertencia
+        text.textContent = customText || "Detector de errores";
+    } else if (state === "error") {
+        dot.style.color = "#ff4d4d"; // rojo error
+        text.textContent = customText || "Se detectó un error";
+    } else { // "saved"
+        dot.style.color = "#42d66b"; // verde guardado
+        text.textContent = customText || "Guardado";
+    }
+}
+
 function updatePreview() {
     clearTimeout(updatePreviewTimer);
+    setAppStatusState("detecting", "Detector de errores");
     const sequence = ++previewUpdateSequence;
     updatePreviewTimer = setTimeout(() => {
         if (sequence !== previewUpdateSequence) return;
@@ -2604,6 +2635,10 @@ function updatePreviewImmediate(sequence = previewUpdateSequence){
     if (sequence !== previewUpdateSequence) return;
     const project = typeof getCurrentProject === "function" ? getCurrentProject() : null;
     if(!project) return;
+
+    if (typeof setAppStatusState === "function") {
+        setAppStatusState("saved", "Guardado");
+    }
 
     const files = project.files || {};
 
@@ -2748,6 +2783,9 @@ function validateCurrentCodeSyntax() {
             let lineNum = lineMatch ? lineMatch[1] : null;
             notice.style.display = "flex";
             notice.innerHTML = `<span>⚠️ Sintaxis JS: <strong>${escapeHTML(err.message)}</strong></span> ${lineNum ? `<button onclick="jumpToLine(${lineNum})" style="background:#ff6a0020; color:var(--orange); border:1px solid #ff6a0040; border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer;">Ir a línea ${lineNum}</button>` : ''}`;
+            if (typeof setAppStatusState === "function") {
+                setAppStatusState("error", "Se detectó un error");
+            }
         }
     } else {
         notice.style.display = "none";
@@ -3348,6 +3386,10 @@ window.addEventListener("message", function(event) {
             proposedFixCode = `\n<script>var ${varName} = ${varName} || function(){ console.log('${varName} inicializado'); };<\/script>`;
         }
 
+        if (typeof setAppStatusState === "function") {
+            setAppStatusState("error", "Se detectó un error");
+        }
+
         if (typeof showTopNotification === "function") {
             showTopNotification(`⚠️ Error: ${errorText}`, proposedFixCode ? { text: fixText, code: proposedFixCode } : null);
         }
@@ -3510,7 +3552,41 @@ document.addEventListener("DOMContentLoaded", function() {
     initCodeSearchAndReplace();
     initAutocompleteAndFormatter();
     initSettingsToggles();
+    initCreateResourceModal();
 });
+
+function initCreateResourceModal() {
+    const openBtn = document.getElementById("openCreateResourceModalBtn");
+    const modal = document.getElementById("createResourceModal");
+    const cancelBtn = document.getElementById("cancelCreateResourceBtn");
+    const confirmBtn = document.getElementById("confirmCreateResourceBtn");
+
+    if (openBtn && modal) {
+        openBtn.addEventListener("click", () => {
+            modal.classList.add("open");
+        });
+    }
+
+    if (cancelBtn && modal) {
+        cancelBtn.addEventListener("click", () => {
+            modal.classList.remove("open");
+        });
+    }
+
+    if (confirmBtn && modal) {
+        confirmBtn.addEventListener("click", () => {
+            const selectedType = document.querySelector('input[name="createResourceType"]:checked')?.value || "file";
+            modal.classList.remove("open");
+
+            if (selectedType === "folder") {
+                if (typeof createNewFolderPrompt === "function") createNewFolderPrompt();
+            } else {
+                const newFileBtn = document.getElementById("newFileButton");
+                if (newFileBtn) newFileBtn.click();
+            }
+        });
+    }
+}
 
 function initSettingsToggles() {
     const searchBtn = document.getElementById("toggleSearchSettingBtn");
@@ -4464,9 +4540,8 @@ function replaceAllMatches() {
                 <span>Recursos</span>
             </div>
             <div style="display:flex; gap:6px;">
-                <button onclick="document.getElementById('newFileButton').click()" style="background:#1b242e; color:#38bdf8; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nuevo Archivo">+ Archivo</button>
-                <button onclick="createNewFolderPrompt()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Nueva Carpeta">+ Carpeta</button>
-                <button onclick="triggerAssetUpload()" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">+ Subir Archivo</button>
+                <button id="openCreateResourceModalBtn" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:5px 12px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Crear recurso">Crear</button>
+                <button onclick="triggerAssetUpload()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:5px 12px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">Subir Archivo</button>
                 <input type="file" id="folderAssetInput" accept="*/*" multiple style="display:none;" onchange="handleAssetUpload(event)">
             </div>
         </div>
@@ -4494,6 +4569,29 @@ function replaceAllMatches() {
                 </div>
                 <div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #020617; border-radius: 8px; padding: 12px; overflow: hidden; border: 1px solid #1e293b;">
                     <img id="imageModalPreview" src="" alt="Vista previa de imagen" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                    <button id="deleteImageModalBtn" style="background: #251010; color: var(--danger); border: 1px solid #ff4d4d33; border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold; cursor: pointer;">Eliminar Imagen</button>
+                    <button onclick="closeImageViewerModal()" style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; border-radius: 6px; padding: 6px 14px; font-size: 11px; cursor: pointer;">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIDEO VIEWER FLOATING MODAL DIALOG -->
+        <div id="videoViewerModal" class="overlay">
+            <div class="dialog" style="width: 650px; max-width: calc(100vw - 24px); max-height: 85vh; display: flex; flex-direction: column; padding: 14px; background: #0f172a; border: 1px solid #334155; border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #1e293b; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; color: #fff;">
+                        <span id="videoModalFileName">Ver Video</span>
+                    </div>
+                    <button onclick="closeVideoViewerModal()" style="background: transparent; color: #94a3b8; border: none; font-size: 20px; cursor: pointer; padding: 0 4px;" title="Cerrar">×</button>
+                </div>
+                <div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #020617; border-radius: 8px; padding: 12px; overflow: hidden; border: 1px solid #1e293b;">
+                    <video id="videoModalPreview" controls autoplay style="max-width: 100%; max-height: 60vh; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);"></video>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                    <button id="deleteVideoModalBtn" style="background: #251010; color: var(--danger); border: 1px solid #ff4d4d33; border-radius: 6px; padding: 6px 14px; font-size: 11px; font-weight: bold; cursor: pointer;">Eliminar Video</button>
+                    <button onclick="closeVideoViewerModal()" style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; border-radius: 6px; padding: 6px 14px; font-size: 11px; cursor: pointer;">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -4617,9 +4715,9 @@ function replaceAllMatches() {
 
         <div class="preview-controls">
 
-            <span class="panel-name">
-                <span style="color:#42d66b;">●</span>
-                Live
+            <span id="appStatusTag" class="panel-name" title="Estado del detector de errores y guardado">
+                <span id="appStatusDot" style="color:#42d66b;">●</span>
+                <span id="appStatusText">Guardado</span>
             </span>
 
             <button
@@ -4698,6 +4796,42 @@ function replaceAllMatches() {
             </button>
             <button id="acceptDiffBtn" class="dialog-confirm" style="background: #112d19; color: var(--green); border: 1px solid #235d34;">
                 ✅ Aceptar cambios
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- CREAR RECURSO MODAL DIALOG -->
+<div id="createResourceModal" class="overlay">
+    <div class="dialog">
+        <div class="dialog-title">
+            Crear recurso
+        </div>
+        <div class="dialog-description">
+            Selecciona qué deseas crear dentro de la carpeta actual de tu proyecto.
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+            <label style="display:flex; align-items:center; gap:10px; background:#181818; padding:10px 12px; border-radius:8px; border:1px solid #333; cursor:pointer;">
+                <input type="radio" name="createResourceType" value="file" checked style="accent-color:var(--orange);">
+                <div>
+                    <strong style="font-size:12px; color:#fff; display:block;">📄 Crear archivo</strong>
+                    <small style="font-size:10px; color:#aaa;">Crea un nuevo archivo de código o texto</small>
+                </div>
+            </label>
+            <label style="display:flex; align-items:center; gap:10px; background:#181818; padding:10px 12px; border-radius:8px; border:1px solid #333; cursor:pointer;">
+                <input type="radio" name="createResourceType" value="folder" style="accent-color:var(--orange);">
+                <div>
+                    <strong style="font-size:12px; color:#fff; display:block;">📁 Crear carpeta</strong>
+                    <small style="font-size:10px; color:#aaa;">Crea una nueva carpeta para organizar recursos</small>
+                </div>
+            </label>
+        </div>
+        <div class="dialog-buttons">
+            <button id="cancelCreateResourceBtn" class="dialog-cancel">
+                Cancelar
+            </button>
+            <button id="confirmCreateResourceBtn" class="dialog-confirm">
+                Siguiente
             </button>
         </div>
     </div>
@@ -5615,6 +5749,97 @@ function renameFolderPrompt(folderPath, currentFolderName) {
     });
 }
 
+let currentRenderToken = 0;
+
+function createFolderDOMItem(folderName, dirPath) {
+    const fullFolderPath = (dirPath === "/" ? "" : dirPath) + folderName + "/";
+    const item = document.createElement("div");
+    item.draggable = true;
+    item.style.cssText = "background:#182028; border:1px solid #2b3a48; border-radius:8px; padding:10px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; transition:all 0.2s; position:relative;";
+
+    item.onmouseover = () => item.style.borderColor = "var(--orange)";
+    item.onmouseout = () => item.style.borderColor = "#2b3a48";
+    item.onclick = () => renderFolderManager(fullFolderPath);
+
+    item.ondragstart = (e) => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ type: "folder", path: fullFolderPath, folderName: folderName }));
+        e.dataTransfer.effectAllowed = "move";
+        item.style.opacity = "0.5";
+    };
+    item.ondragend = () => { item.style.opacity = "1"; };
+
+    item.ondragover = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        item.style.background = "#283545";
+        item.style.borderColor = "var(--orange)";
+    };
+    item.ondragleave = () => {
+        item.style.background = "#182028";
+        item.style.borderColor = "#2b3a48";
+    };
+    item.ondrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        item.style.background = "#182028";
+        item.style.borderColor = "#2b3a48";
+        try {
+            const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+            if (data && data.path && data.path !== fullFolderPath && !fullFolderPath.startsWith(data.path)) {
+                moveResourcePath(data.path, fullFolderPath, data.type);
+            }
+        } catch (err) { /* ignore non-json drag data */ }
+    };
+
+    item.innerHTML = `
+        <div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#22303e; border-radius:8px; border:1px solid #36495b; color:var(--orange); font-weight:800; font-size:12px;">DIR</div>
+        <div style="font-size:11px; color:#edf2f7; font-weight:600; text-align:center; word-break:break-all;">${escapeHTML(folderName)}</div>
+        <div style="position:absolute; top:4px; right:4px; display:flex; gap:2px;">
+            <button title="Renombrar carpeta" onclick="event.stopPropagation(); renameFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:#8a99ad; border:none; font-size:10px; cursor:pointer; padding:2px;">✎</button>
+            <button title="Eliminar carpeta" onclick="event.stopPropagation(); deleteFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:var(--danger); border:none; font-size:10px; cursor:pointer; padding:2px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg></button>
+        </div>
+    `;
+    return item;
+}
+
+function createFileDOMItem(filename, displayName, project) {
+    const content = project.files[filename];
+    const isImage = content && typeof content === "string" && content.startsWith("data:image");
+    const item = document.createElement("div");
+    item.draggable = true;
+    item.style.cssText = "background:#151d26; border:1px solid #24323e; border-radius:8px; padding:8px; display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; cursor:pointer; transition:all 0.2s;";
+    item.onmouseover = () => item.style.borderColor = "#384d5f";
+    item.onmouseout = () => item.style.borderColor = "#24323e";
+
+    item.ondragstart = (e) => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ type: "file", path: filename, fileName: displayName }));
+        e.dataTransfer.effectAllowed = "move";
+        item.style.opacity = "0.5";
+    };
+    item.ondragend = () => { item.style.opacity = "1"; };
+
+    item.onclick = () => {
+        selectFile(filename);
+    };
+
+    const previewIcon = isImage
+        ? `<div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#1e293b; border-radius:4px; border:1px solid #334155; font-weight:800; font-size:10px; color:#38bdf8;">IMG</div>`
+        : `<div style="height:36px; display:flex; align-items:center; justify-content:center;">${typeof getFileIcon === "function" ? getFileIcon(filename) : '<span style="color:#94a3b8; font-weight:800; font-size:12px;">FILE</span>'}</div>`;
+
+    const isCodeFile = isEditableCodeFile(filename);
+
+    item.innerHTML = `
+        ${previewIcon}
+        <div style="font-size:10px; color:#cbd5e1; font-weight:500; text-align:center; word-break:break-all; max-width:100%; line-height:1.2;">${escapeHTML(displayName)}</div>
+        <div style="display:flex; gap:4px; margin-top:4px; width:100%; justify-content:center;">
+            <button onclick="event.stopPropagation(); selectFile('${filename}')" style="background:#1e293b; color:#38bdf8; border:1px solid #334155; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:600;" title="Abrir y vista previa">Abrir</button>
+            ${isCodeFile ? `<button onclick="event.stopPropagation(); openCodeEditorModal('${filename}')" style="background:#2b180d; color:var(--orange); border:1px solid #ff6a0040; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:700;" title="Editar código">Editar</button>` : ''}
+            <button onclick="event.stopPropagation(); deleteFile('${filename}')" style="background:#251010; color:var(--danger); border:1px solid #ff4d4d33; border-radius:4px; padding:2px 5px; font-size:9px; cursor:pointer;" title="Eliminar archivo"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg></button>
+        </div>
+    `;
+    return item;
+}
+
 function renderFolderManager(dirPath = "/"){
     currentFolderDirectory = dirPath;
     const project = getCurrentProject();
@@ -5622,6 +5847,7 @@ function renderFolderManager(dirPath = "/"){
     if(!project.files) project.files = {};
     if(!project.folders) project.folders = [];
 
+    const renderToken = ++currentRenderToken;
     const breadcrumb = document.getElementById("folderBreadcrumb");
     const grid = document.getElementById("folderGrid");
     if(!grid) return;
@@ -5640,131 +5866,75 @@ function renderFolderManager(dirPath = "/"){
 
     grid.innerHTML = "";
 
-    // Render Subfolders
     const prefix = dirPath === "/" ? "" : dirPath.replace(/^\//, "");
+    const prefixLen = prefix.length;
     const directFolders = new Set();
+    const folderList = Array.isArray(project.folders) ? project.folders : [];
 
-    project.folders.forEach(fPath => {
+    for (let i = 0; i < folderList.length; i++) {
+        const fPath = folderList[i];
         if(fPath.startsWith(prefix) && fPath !== prefix){
-            const relative = fPath.slice(prefix.length);
+            const relative = fPath.slice(prefixLen);
             const firstPart = relative.split("/")[0];
             if(firstPart) directFolders.add(firstPart);
         }
-    });
+    }
 
-    directFolders.forEach(folderName => {
-        const fullFolderPath = (dirPath === "/" ? "" : dirPath) + folderName + "/";
-        const item = document.createElement("div");
-        item.draggable = true;
-        item.style.cssText = "background:#182028; border:1px solid #2b3a48; border-radius:8px; padding:10px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; transition:all 0.2s; position:relative;";
-
-        item.onmouseover = () => item.style.borderColor = "var(--orange)";
-        item.onmouseout = () => item.style.borderColor = "#2b3a48";
-        item.onclick = () => renderFolderManager(fullFolderPath);
-
-        // Windows 11 style Drag-and-Drop moving for folders
-        item.ondragstart = (e) => {
-            e.dataTransfer.setData("text/plain", JSON.stringify({ type: "folder", path: fullFolderPath, folderName: folderName }));
-            e.dataTransfer.effectAllowed = "move";
-            item.style.opacity = "0.5";
-        };
-        item.ondragend = () => { item.style.opacity = "1"; };
-
-        item.ondragover = (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-            item.style.background = "#283545";
-            item.style.borderColor = "var(--orange)";
-        };
-        item.ondragleave = () => {
-            item.style.background = "#182028";
-            item.style.borderColor = "#2b3a48";
-        };
-        item.ondrop = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            item.style.background = "#182028";
-            item.style.borderColor = "#2b3a48";
-            try {
-                const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-                if (data && data.path && data.path !== fullFolderPath && !fullFolderPath.startsWith(data.path)) {
-                    moveResourcePath(data.path, fullFolderPath, data.type);
-                }
-            } catch (err) { /* ignore non-json drag data */ }
-        };
-
-        item.innerHTML = `
-            <div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#22303e; border-radius:8px; border:1px solid #36495b; color:var(--orange); font-weight:800; font-size:12px;">DIR</div>
-            <div style="font-size:11px; color:#edf2f7; font-weight:600; text-align:center; word-break:break-all;">${escapeHTML(folderName)}</div>
-            <div style="position:absolute; top:4px; right:4px; display:flex; gap:2px;">
-                <button title="Renombrar carpeta" onclick="event.stopPropagation(); renameFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:#8a99ad; border:none; font-size:10px; cursor:pointer; padding:2px;">✎</button>
-                <button title="Eliminar carpeta" onclick="event.stopPropagation(); deleteFolderPrompt('${fullFolderPath}', '${folderName}')" style="background:transparent; color:var(--danger); border:none; font-size:10px; cursor:pointer; padding:2px;"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg></button>
-            </div>
-        `;
-        grid.appendChild(item);
-    });
-
-    // Render Files / Assets in current folder
-    Object.keys(project.files).forEach(filename => {
-        let isMatch = false;
-        let displayName = filename;
-
+    const matchingFiles = [];
+    const fileKeys = Object.keys(project.files);
+    for (let i = 0; i < fileKeys.length; i++) {
+        const filename = fileKeys[i];
         if(dirPath === "/"){
-            if(!filename.includes("/")) isMatch = true;
+            if(!filename.includes("/")) matchingFiles.push({ filename, displayName: filename });
         } else {
-            const rel = dirPath.replace(/^\//, "");
-            if(filename.startsWith(rel)){
-                const rest = filename.slice(rel.length);
+            if(filename.startsWith(prefix)){
+                const rest = filename.slice(prefixLen);
                 if(!rest.includes("/")){
-                    isMatch = true;
-                    displayName = rest;
+                    matchingFiles.push({ filename, displayName: rest });
                 }
             }
         }
-
-        if(isMatch){
-            const content = project.files[filename];
-            const isImage = content && typeof content === "string" && content.startsWith("data:image");
-            const item = document.createElement("div");
-            item.draggable = true;
-            item.style.cssText = "background:#151d26; border:1px solid #24323e; border-radius:8px; padding:8px; display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; cursor:pointer; transition:all 0.2s;";
-            item.onmouseover = () => item.style.borderColor = "#384d5f";
-            item.onmouseout = () => item.style.borderColor = "#24323e";
-
-            // Drag file
-            item.ondragstart = (e) => {
-                e.dataTransfer.setData("text/plain", JSON.stringify({ type: "file", path: filename, fileName: displayName }));
-                e.dataTransfer.effectAllowed = "move";
-                item.style.opacity = "0.5";
-            };
-            item.ondragend = () => { item.style.opacity = "1"; };
-
-            item.onclick = () => {
-                selectFile(filename);
-            };
-
-            const previewIcon = isImage
-                ? `<div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:#1e293b; border-radius:4px; border:1px solid #334155; font-weight:800; font-size:10px; color:#38bdf8;">IMG</div>`
-                : `<div style="height:36px; display:flex; align-items:center; justify-content:center;">${typeof getFileIcon === "function" ? getFileIcon(filename) : '<span style="color:#94a3b8; font-weight:800; font-size:12px;">FILE</span>'}</div>`;
-
-            const isCodeFile = !isImage;
-
-            item.innerHTML = `
-                ${previewIcon}
-                <div style="font-size:10px; color:#cbd5e1; font-weight:500; text-align:center; word-break:break-all; max-width:100%; line-height:1.2;">${escapeHTML(displayName)}</div>
-                <div style="display:flex; gap:4px; margin-top:4px; width:100%; justify-content:center;">
-                    <button onclick="event.stopPropagation(); selectFile('${filename}')" style="background:#1e293b; color:#38bdf8; border:1px solid #334155; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:600;" title="Abrir y vista previa">Abrir</button>
-                    ${isCodeFile ? `<button onclick="event.stopPropagation(); openCodeEditorModal('${filename}')" style="background:#2b180d; color:var(--orange); border:1px solid #ff6a0040; border-radius:4px; padding:2px 6px; font-size:9px; cursor:pointer; font-weight:700;" title="Editar código">Editar</button>` : ''}
-                    <button onclick="event.stopPropagation(); deleteFile('${filename}')" style="background:#251010; color:var(--danger); border:1px solid #ff4d4d33; border-radius:4px; padding:2px 5px; font-size:9px; cursor:pointer;" title="Eliminar archivo"><svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M10 2V1H6v1H2v1h12V2h-4zM3 4v10a1 1 0 001 1h8a1 1 0 001-1V4H3zm3 2h1v6H6V6zm3 0h1v6H9V6z"/></svg></button>
-                </div>
-            `;
-            grid.appendChild(item);
-        }
-    });
-
-    if(grid.children.length === 0){
-        grid.innerHTML = `<div style="grid-column: 1 / -1; color:#627382; font-style:italic; font-size:11px; text-align:center; padding:30px;">Carpeta vacía. Haz clic en <strong>+ Subir Archivo</strong> o <strong>+ Carpeta</strong>.</div>`;
     }
+
+    const allItemsToRender = [];
+    directFolders.forEach(folderName => {
+        allItemsToRender.push({ type: "folder", folderName });
+    });
+    for (let i = 0; i < matchingFiles.length; i++) {
+        allItemsToRender.push({ type: "file", ...matchingFiles[i] });
+    }
+
+    if(allItemsToRender.length === 0){
+        grid.innerHTML = `<div style="grid-column: 1 / -1; color:#627382; font-style:italic; font-size:11px; text-align:center; padding:30px;">Carpeta vacía. Haz clic en <strong>Crear</strong> o <strong>Subir Archivo</strong>.</div>`;
+        return;
+    }
+
+    // Chunked batch rendering (e.g. 100 items per batch) to prevent UI freezing with 50,000+ items
+    const BATCH_SIZE = 100;
+    let batchIndex = 0;
+
+    function renderNextBatch() {
+        if (currentRenderToken !== renderToken) return;
+        const fragment = document.createDocumentFragment();
+        const limit = Math.min(batchIndex + BATCH_SIZE, allItemsToRender.length);
+
+        for (; batchIndex < limit; batchIndex++) {
+            const itemData = allItemsToRender[batchIndex];
+            if (itemData.type === "folder") {
+                fragment.appendChild(createFolderDOMItem(itemData.folderName, dirPath));
+            } else {
+                fragment.appendChild(createFileDOMItem(itemData.filename, itemData.displayName, project));
+            }
+        }
+
+        grid.appendChild(fragment);
+
+        if (batchIndex < allItemsToRender.length) {
+            requestAnimationFrame(renderNextBatch);
+        }
+    }
+
+    renderNextBatch();
 }
 
 function deleteFolderPrompt(folderPath, folderName) {
@@ -6066,6 +6236,23 @@ function getFileType(filename){
     return "file";
 }
 
+function isEditableCodeFile(filename) {
+    if (!filename) return false;
+    const type = getFileType(filename);
+    const nonEditableTypes = ["image", "video", "audio", "archive"];
+    if (nonEditableTypes.includes(type)) return false;
+
+    // Check data URL prefix if image or video
+    const project = typeof getCurrentProject === "function" ? getCurrentProject() : null;
+    if (project && project.files && project.files[filename]) {
+        const content = project.files[filename];
+        if (typeof content === "string" && (content.startsWith("data:image") || content.startsWith("data:video") || content.startsWith("data:audio"))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function getFileIcon(filename){
     const type = getFileType(filename);
 
@@ -6256,30 +6443,34 @@ fileInput.addEventListener(
 
 
 function createFile(){
-    const name = fileInput.value.trim();
+    const inputVal = fileInput.value.trim();
 
-    if(!name){
+    if(!inputVal){
         fileInput.focus();
         return;
     }
 
-    if(!name.includes(".")){
-        showCustomDialog({ title: "Crear Archivo", description: "El archivo debe tener una extensión válida, por ejemplo 'images/foto.png' o 'script.js'." });
+    if(!inputVal.includes(".")){
+        showCustomDialog({ title: "Crear Archivo", description: "El archivo debe tener una extensión válida, por ejemplo 'foto.png' o 'script.js'." });
         return;
     }
 
     const project = getCurrentProject();
     if(!project) return;
 
-    if(Object.prototype.hasOwnProperty.call(project.files, name)){
+    const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
+    const fullPath = inputVal.includes("/") ? inputVal : prefix + inputVal;
+
+    if(Object.prototype.hasOwnProperty.call(project.files, fullPath)){
         showCustomDialog({ title: "Crear Archivo", description: "Ese archivo o ruta ya existe en el proyecto." });
         return;
     }
 
-    project.files[name] = "";
+    project.files[fullPath] = "";
     saveProjects();
-    selectFile(name);
-    renderFolderManager(currentFolderDirectory);
+    renderFiles();
+    renderFolderManager(currentFolderDirectory || "/");
+    selectFile(fullPath);
     fileDialog.classList.remove("open");
 }
 
@@ -6338,10 +6529,13 @@ function closeCodeEditorModal() {
     updatePreview();
 }
 
+let currentMediaModalFilename = null;
+
 function openImageViewerModal(filename) {
     const project = getCurrentProject();
     if (!project || !project.files || !project.files[filename]) return;
 
+    currentMediaModalFilename = filename;
     const modal = document.getElementById("imageViewerModal");
     const imgPreview = document.getElementById("imageModalPreview");
     const nameEl = document.getElementById("imageModalFileName");
@@ -6349,12 +6543,55 @@ function openImageViewerModal(filename) {
     if (nameEl) nameEl.textContent = filename;
     if (imgPreview) imgPreview.src = project.files[filename];
 
+    const delBtn = document.getElementById("deleteImageModalBtn");
+    if (delBtn) {
+        delBtn.onclick = () => {
+            closeImageViewerModal();
+            deleteFile(filename);
+        };
+    }
+
     if (modal) modal.classList.add("open");
 }
 
 function closeImageViewerModal() {
     const modal = document.getElementById("imageViewerModal");
     if (modal) modal.classList.remove("open");
+    currentMediaModalFilename = null;
+}
+
+function openVideoViewerModal(filename) {
+    const project = getCurrentProject();
+    if (!project || !project.files || !project.files[filename]) return;
+
+    currentMediaModalFilename = filename;
+    const modal = document.getElementById("videoViewerModal");
+    const vidPreview = document.getElementById("videoModalPreview");
+    const nameEl = document.getElementById("videoModalFileName");
+
+    if (nameEl) nameEl.textContent = filename;
+    if (vidPreview) vidPreview.src = project.files[filename];
+
+    const delBtn = document.getElementById("deleteVideoModalBtn");
+    if (delBtn) {
+        delBtn.onclick = () => {
+            closeVideoViewerModal();
+            deleteFile(filename);
+        };
+    }
+
+    if (modal) modal.classList.add("open");
+}
+
+function closeVideoViewerModal() {
+    const modal = document.getElementById("videoViewerModal");
+    const vidPreview = document.getElementById("videoModalPreview");
+    if (vidPreview) {
+        vidPreview.pause();
+        vidPreview.src = "";
+    }
+    if (modal) modal.classList.remove("open");
+    currentMediaModalFilename = null;
 }
 
 function selectFile(filename){
@@ -6365,9 +6602,16 @@ function selectFile(filename){
     const project = getCurrentProject();
     if (project && project.files && project.files[filename]) {
         const fileContent = project.files[filename];
-        const isImage = typeof fileContent === "string" && (fileContent.startsWith("data:image") || getFileType(filename) === "image");
+        const fileType = getFileType(filename);
+        const isImage = typeof fileContent === "string" && (fileContent.startsWith("data:image") || fileType === "image");
+        const isVideo = typeof fileContent === "string" && (fileContent.startsWith("data:video") || fileType === "video");
+
         if (isImage) {
             openImageViewerModal(filename);
+            return;
+        }
+        if (isVideo) {
+            openVideoViewerModal(filename);
             return;
         }
     }
