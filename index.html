@@ -2602,26 +2602,47 @@ function toggleVisualEdit() {
 /* =====================================================
    PREVIEW / VISTA DE APLICACIÓN Y ESTADO DINÁMICO
 ===================================================== */
+let appStatusResetTimer = null;
+
 function setAppStatusState(state, customText) {
     const dot = document.getElementById("appStatusDot");
     const text = document.getElementById("appStatusText");
     if (!dot || !text) return;
 
-    if (state === "detecting") {
-        dot.style.color = "#ffbd2e"; // amarillo / naranja advertencia
-        text.textContent = customText || "Detector de errores";
-    } else if (state === "error") {
-        dot.style.color = "#ff4d4d"; // rojo error
-        text.textContent = customText || "Se detectó un error";
-    } else { // "saved"
-        dot.style.color = "#42d66b"; // verde guardado
-        text.textContent = customText || "Guardado";
+    if (state === "error") {
+        dot.style.color = "#ff4d4d";
+        text.textContent = customText || "Error detectado";
+    } else if (state === "info" || state === "action") {
+        dot.style.color = "#ff7a1a";
+        text.textContent = customText || "Listo";
+    } else { // "saved" or default
+        dot.style.color = "#42d66b";
+        text.textContent = customText || "Cambios guardados";
+    }
+
+    if (customText && state !== "saved") {
+        clearTimeout(appStatusResetTimer);
+        appStatusResetTimer = setTimeout(() => {
+            if (dot && text) {
+                dot.style.color = "#42d66b";
+                text.textContent = "Cambios guardados";
+            }
+        }, 3000);
+    }
+}
+
+function openCreateFileDialog() {
+    const fileDialog = document.getElementById("fileDialog");
+    const fileInput = document.getElementById("fileInput");
+    if (fileDialog && fileInput) {
+        fileInput.value = "";
+        fileDialog.classList.add("open");
+        setTimeout(() => fileInput.focus(), 50);
     }
 }
 
 function updatePreview() {
     clearTimeout(updatePreviewTimer);
-    setAppStatusState("detecting", "Detector de errores");
     const sequence = ++previewUpdateSequence;
     updatePreviewTimer = setTimeout(() => {
         if (sequence !== previewUpdateSequence) return;
@@ -2637,7 +2658,7 @@ function updatePreviewImmediate(sequence = previewUpdateSequence){
     if(!project) return;
 
     if (typeof setAppStatusState === "function") {
-        setAppStatusState("saved", "Guardado");
+        setAppStatusState("saved", "Cambios guardados");
     }
 
     const files = project.files || {};
@@ -4513,14 +4534,14 @@ function replaceAllMatches() {
                     onclick="switchMainTab('recursos')">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5A1.5 1.5 0 0 1 3 1h3.086a1.5 1.5 0 0 1 1.06.44l1.415 1.414A.5.5 0 0 0 8.914 3H13a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.5v-10zM3 2a.5.5 0 0 0-.5.5v10a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5H8.914a1.5 1.5 0 0 1-1.06-.44L6.439 1.646A.5.5 0 0 0 6.086 1.5H3z"/></svg>Recursos
                 </button>
+                <button
+                    id="openCreateResourceModalBtn"
+                    class="main-tab-btn"
+                    style="background:var(--orange); color:#000; border-color:var(--orange); font-weight:700;"
+                    title="Crear recurso (archivo o carpeta)">
+                    Crear
+                </button>
             </div>
-
-            <button
-                id="newFileButton"
-                class="new-file-button"
-                title="Crear archivo">
-                +
-            </button>
 
         </div>
 
@@ -4540,7 +4561,6 @@ function replaceAllMatches() {
                 <span>Recursos</span>
             </div>
             <div style="display:flex; gap:6px;">
-                <button id="openCreateResourceModalBtn" style="background:var(--orange); color:#000; border:none; border-radius:6px; padding:5px 12px; font-size:11px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:4px;" title="Crear recurso">Crear</button>
                 <button onclick="triggerAssetUpload()" style="background:#1b242e; color:#cbd5e1; border:1px solid #324454; border-radius:6px; padding:5px 12px; font-size:11px; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:4px;" title="Subir Imagen/Archivo">Subir Archivo</button>
                 <input type="file" id="folderAssetInput" accept="*/*" multiple style="display:none;" onchange="handleAssetUpload(event)">
             </div>
@@ -6064,6 +6084,19 @@ function processUploadedFiles(files){
 async function scanDataTransferItems(items) {
     const fileEntries = [];
 
+    async function readAllEntries(dirReader) {
+        let entries = [];
+        let read = async () => {
+            let results = await new Promise((resolve) => dirReader.readEntries(resolve));
+            if (results && results.length > 0) {
+                entries = entries.concat(results);
+                await read();
+            }
+        };
+        await read();
+        return entries;
+    }
+
     async function traverseEntry(entry, currentPath = "") {
         if (entry.isFile) {
             return new Promise((resolve) => {
@@ -6073,13 +6106,11 @@ async function scanDataTransferItems(items) {
                         relativePath: currentPath ? currentPath + "/" + file.name : (file.webkitRelativePath || file.name)
                     });
                     resolve();
-                });
+                }, () => resolve());
             });
         } else if (entry.isDirectory) {
             const dirReader = entry.createReader();
-            const entries = await new Promise((resolve) => {
-                dirReader.readEntries((results) => resolve(results));
-            });
+            const entries = await readAllEntries(dirReader);
             const subDirPath = currentPath ? currentPath + "/" + entry.name : entry.name;
             for (const subEntry of entries) {
                 await traverseEntry(subEntry, subDirPath);
@@ -6106,6 +6137,18 @@ async function scanDataTransferItems(items) {
     return fileEntries;
 }
 
+function isBinaryAsset(file) {
+    if (!file) return false;
+    const type = file.type || "";
+    const name = (file.name || "").toLowerCase();
+    if (type.startsWith("image/") || type.startsWith("video/") || type.startsWith("audio/") || type.startsWith("font/") || type.includes("pdf") || type.includes("zip")) {
+        return true;
+    }
+    const binaryExts = ["png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "mp4", "webm", "mkv", "avi", "mp3", "wav", "ogg", "woff", "woff2", "ttf", "eot", "otf", "zip", "pdf"];
+    const ext = name.split(".").pop();
+    return binaryExts.includes(ext);
+}
+
 function processDroppedFolderTree(fileEntries) {
     const project = getCurrentProject();
     if (!project) return;
@@ -6115,6 +6158,8 @@ function processDroppedFolderTree(fileEntries) {
     const prefix = currentFolderDirectory === "/" ? "" : currentFolderDirectory.replace(/^\//, "");
 
     let loadedCount = 0;
+    if (fileEntries.length === 0) return;
+
     fileEntries.forEach(({ file, relativePath }) => {
         const fullPath = prefix + relativePath;
 
@@ -6139,11 +6184,11 @@ function processDroppedFolderTree(fileEntries) {
                 renderFiles();
                 renderFolderManager(currentFolderDirectory || "/");
                 updatePreview();
-                showTopNotification(`✅ ${fileEntries.length} recurso(s) y carpetas importados`, null, 2500);
+                showTopNotification(`Importado correctamente (${fileEntries.length} archivos)`, null, 2500);
             }
         };
 
-        if (file.type && file.type.startsWith("image/")) {
+        if (isBinaryAsset(file)) {
             reader.readAsDataURL(file);
         } else {
             reader.readAsText(file);
@@ -6472,6 +6517,7 @@ function createFile(){
     renderFolderManager(currentFolderDirectory || "/");
     selectFile(fullPath);
     fileDialog.classList.remove("open");
+    showTopNotification("Archivo creado", null, 2000);
 }
 
 
@@ -6570,7 +6616,21 @@ function openVideoViewerModal(filename) {
     const nameEl = document.getElementById("videoModalFileName");
 
     if (nameEl) nameEl.textContent = filename;
-    if (vidPreview) vidPreview.src = project.files[filename];
+    let videoSrc = project.files[filename];
+
+    // Ensure video MIME type is valid in Data URL or create Object URL if needed
+    if (typeof videoSrc === "string" && !videoSrc.startsWith("data:") && !videoSrc.startsWith("http") && !videoSrc.startsWith("blob:")) {
+        const ext = filename.split(".").pop().toLowerCase();
+        const mimeMap = { mp4: "video/mp4", webm: "video/webm", mkv: "video/x-matroska", avi: "video/x-msvideo", mov: "video/quicktime" };
+        const mime = mimeMap[ext] || "video/mp4";
+        videoSrc = `data:${mime};base64,${videoSrc}`;
+    }
+
+    if (vidPreview) {
+        vidPreview.src = videoSrc;
+        vidPreview.load();
+        vidPreview.play().catch(err => console.log("Autoplay video:", err));
+    }
 
     const delBtn = document.getElementById("deleteVideoModalBtn");
     if (delBtn) {
@@ -7646,6 +7706,10 @@ const settingsOverlay =
     );
 
 function showTopNotification(message, details, duration = 2500) {
+    if (typeof setAppStatusState === "function") {
+        const cleanMsg = message.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2700}-\u{27BF}✅💾📄📁🗑✏️✨💡📋⚠️❌📦]\s*/gu, "").trim();
+        setAppStatusState(details && details.code ? "error" : "info", cleanMsg || message);
+    }
     const banner = document.getElementById("previewErrorBanner");
     const desc = document.getElementById("previewErrorDesc");
     const fix = document.getElementById("previewErrorFix");
