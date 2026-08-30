@@ -7,6 +7,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- Sentry Browser Error Detection & Monitoring Library -->
 <script src="https://browser.sentry-cdn.com/7.114.0/bundle.min.js" crossorigin="anonymous"></script>
+<!-- JSHint Static JavaScript Error & Bug Detection Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jshint/2.13.6/jshint.min.js"></script>
 <script>
   (function initSentryErrorDetection() {
     try {
@@ -2795,18 +2797,43 @@ function validateCurrentCodeSyntax() {
     if (!notice) return;
 
     if (fileType === "js") {
-        try {
-            new Function(code);
+        let hasError = false;
+        let errorMessage = "";
+        let errorLine = null;
+
+        // 1. Use JSHint library if available for deep static analysis
+        if (typeof JSHINT !== "undefined") {
+            const options = { esversion: 11, undef: false, unused: false, asi: true, expr: true };
+            JSHINT(code, options);
+            const errors = JSHINT.errors || [];
+            if (errors.length > 0 && errors[0]) {
+                hasError = true;
+                errorMessage = errors[0].reason || "Error de código";
+                errorLine = errors[0].line || null;
+            }
+        }
+
+        // 2. Fallback to Function constructor syntax check
+        if (!hasError) {
+            try {
+                new Function(code);
+            } catch (err) {
+                hasError = true;
+                errorMessage = err.message;
+                let lineMatch = err.stack ? err.stack.match(/<anonymous>:(\d+):(\d+)/) : null;
+                errorLine = lineMatch ? lineMatch[1] : null;
+            }
+        }
+
+        if (hasError) {
+            notice.style.display = "flex";
+            notice.innerHTML = `<span>⚠️ Detector JS: <strong>${escapeHTML(errorMessage)}</strong></span> ${errorLine ? `<button onclick="jumpToLine(${errorLine})" style="background:#ff6a0020; color:var(--orange); border:1px solid #ff6a0040; border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer;">Ir a línea ${errorLine}</button>` : ''}`;
+            if (typeof setAppStatusState === "function") {
+                setAppStatusState("error", "Error detectado");
+            }
+        } else {
             notice.style.display = "none";
             notice.innerHTML = "";
-        } catch (err) {
-            let lineMatch = err.stack ? err.stack.match(/<anonymous>:(\d+):(\d+)/) : null;
-            let lineNum = lineMatch ? lineMatch[1] : null;
-            notice.style.display = "flex";
-            notice.innerHTML = `<span>⚠️ Sintaxis JS: <strong>${escapeHTML(err.message)}</strong></span> ${lineNum ? `<button onclick="jumpToLine(${lineNum})" style="background:#ff6a0020; color:var(--orange); border:1px solid #ff6a0040; border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer;">Ir a línea ${lineNum}</button>` : ''}`;
-            if (typeof setAppStatusState === "function") {
-                setAppStatusState("error", "Se detectó un error");
-            }
         }
     } else {
         notice.style.display = "none";
